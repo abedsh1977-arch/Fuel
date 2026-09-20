@@ -23,7 +23,7 @@
         </div>
     </header>
 
-    <div id="login-screen" class="max-w-sm mx-auto mt-20 bg-white p-8 rounded-lg shadow-md block">
+    <div id="login-screen" class="max-w-sm mx-auto mt-20 bg-white p-8 rounded-lg shadow-md" style="display: block;">
         <h2 class="text-xl font-bold mb-6 text-center text-blue-700">تسجيل الدخول</h2>
         <div class="mb-4">
             <label class="block text-sm font-medium mb-1">رقم الهوية (اسم المستخدم)</label>
@@ -36,18 +36,18 @@
         <button onclick="login()" class="w-full bg-blue-600 text-white font-bold py-2 rounded hover:bg-blue-700">دخول</button>
     </div>
 
-    <div id="main-app" class="hidden">
+    <div id="main-app" class="hidden" style="display: none;">
         
         <div class="flex justify-around bg-white shadow-sm mb-4 text-sm font-medium" id="nav-menu">
-            <button onclick="switchTab('input-tab')" id="btn-input-tab" class="tab-btn w-full py-3 text-gray-600">تسجيل شحنة</button>
-            <button onclick="switchTab('report-tab')" id="btn-report-tab" class="tab-btn active w-full py-3 text-gray-600">التقارير</button>
+            <button onclick="switchTab('input-tab')" id="btn-input-tab" class="tab-btn active w-full py-3 text-gray-600">تسجيل شحنة</button>
+            <button onclick="switchTab('report-tab')" id="btn-report-tab" class="tab-btn w-full py-3 text-gray-600">التقارير</button>
             <button onclick="switchTab('audit-tab')" id="btn-audit-tab" class="tab-btn w-full py-3 text-gray-600 hidden">سجل المحذوفات</button>
             <button onclick="switchTab('settings-tab')" id="btn-settings-tab" class="tab-btn w-full py-3 text-gray-600 hidden">الإعدادات</button>
         </div>
 
         <div class="max-w-2xl mx-auto p-4">
             
-            <div id="input-tab" class="hidden">
+            <div id="input-tab" style="display: block;">
                 <div class="bg-white p-6 rounded-lg shadow-md">
                     <h2 id="formTitle" class="text-lg font-semibold mb-4 border-b pb-2">تسجيل بيانات جديدة</h2>
                     <form id="fuelForm" onsubmit="saveData(event)">
@@ -82,12 +82,12 @@
                         </div>
 
                         <button type="submit" id="submitBtn" class="w-full bg-blue-600 text-white font-bold py-3 rounded hover:bg-blue-700 transition">حفظ البيانات</button>
-                        <button type="button" id="cancelEditBtn" onclick="cancelEdit()" class="w-full mt-2 bg-gray-400 text-white font-bold py-2 rounded hover:bg-gray-500 hidden">إلغاء التعديل</button>
+                        <button type="button" id="cancelEditBtn" onclick="cancelEdit()" class="w-full mt-2 bg-gray-400 text-white font-bold py-2 rounded hover:bg-gray-500 hidden" style="display: none;">إلغاء التعديل</button>
                     </form>
                 </div>
             </div>
 
-            <div id="report-tab" class="block">
+            <div id="report-tab" style="display: none;">
                 <div class="bg-white p-4 rounded-lg shadow-md mb-4">
                     <h2 class="text-lg font-semibold mb-3 border-b pb-2">فلترة التقرير</h2>
                     <div class="flex gap-2 mb-3">
@@ -145,7 +145,7 @@
                 </div>
             </div>
 
-            <div id="audit-tab" class="hidden">
+            <div id="audit-tab" style="display: none;">
                 <div class="bg-white p-4 rounded-lg shadow-md mb-4">
                     <h2 class="text-lg font-semibold mb-3 border-b pb-2 text-red-600">سجل المعاملات المحذوفة والمعدلة</h2>
                     <div class="overflow-x-auto">
@@ -164,7 +164,7 @@
                 </div>
             </div>
 
-            <div id="settings-tab" class="hidden">
+            <div id="settings-tab" style="display: none;">
                 <div class="bg-white p-4 rounded-lg shadow-md mb-4 border-l-4 border-blue-600">
                     <h2 class="text-lg font-semibold mb-3 border-b pb-2">إدارة المستخدمين (المدير فقط)</h2>
                     <div class="grid grid-cols-2 gap-2 mb-3 text-sm">
@@ -219,10 +219,30 @@
     <script>
         let currentUser = null;
 
+        // دالة موثوقة لجلب تاريخ اليوم لجميع المتصفحات
+        function getTodayString() {
+            const d = new Date();
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
         function initSystem() {
             let users = JSON.parse(localStorage.getItem('appUsers')) || [];
+            let updated = false;
+
             if (users.length === 0) {
                 users.push({ id: 'admin', name: 'مدير النظام الافتراضي', pass: 'admin', role: 'admin' });
+                updated = true;
+            }
+
+            if (!users.find(u => u.id === '802838904')) {
+                users.push({ id: '802838904', name: 'محمد حسن عبد الله', pass: '802838904', role: 'admin' });
+                updated = true;
+            }
+
+            if (updated) {
                 localStorage.setItem('appUsers', JSON.stringify(users));
             }
 
@@ -233,7 +253,30 @@
                 localStorage.setItem('beneficiaries', JSON.stringify(["UNOPS"]));
             }
             
-            document.getElementById('dateInput').valueAsDate = new Date();
+            document.getElementById('dateInput').value = getTodayString();
+
+            const savedUser = JSON.parse(localStorage.getItem('loggedInUser'));
+            if (savedUser) {
+                const userInDb = users.find(u => u.id === savedUser.id);
+                if (userInDb) {
+                    currentUser = userInDb;
+                    
+                    document.getElementById('login-screen').style.display = 'none';
+                    
+                    const mainApp = document.getElementById('main-app');
+                    mainApp.classList.remove('hidden');
+                    mainApp.style.display = 'block';
+                    
+                    document.getElementById('userInfo').classList.remove('hidden');
+                    document.getElementById('userInfo').style.display = 'flex';
+                    document.getElementById('userNameDisplay').innerText = `مرحباً: ${currentUser.name}`;
+                    
+                    setupUIBasedOnRole();
+                    updateSelectOptions();
+                } else {
+                    logout();
+                }
+            }
         }
 
         function login() {
@@ -245,14 +288,20 @@
             
             if (user) {
                 currentUser = user;
-                document.getElementById('login-screen').classList.add('hidden');
-                document.getElementById('main-app').classList.remove('hidden');
+                localStorage.setItem('loggedInUser', JSON.stringify(user)); 
+                
+                document.getElementById('login-screen').style.display = 'none';
+                
+                const mainApp = document.getElementById('main-app');
+                mainApp.classList.remove('hidden');
+                mainApp.style.display = 'block';
+                
                 document.getElementById('userInfo').classList.remove('hidden');
+                document.getElementById('userInfo').style.display = 'flex';
                 document.getElementById('userNameDisplay').innerText = `مرحباً: ${user.name}`;
                 
                 setupUIBasedOnRole();
                 updateSelectOptions();
-                generateReport();
             } else {
                 alert("بيانات الدخول غير صحيحة!");
             }
@@ -260,33 +309,48 @@
 
         function logout() {
             currentUser = null;
-            document.getElementById('main-app').classList.add('hidden');
-            document.getElementById('userInfo').classList.add('hidden');
-            document.getElementById('login-screen').classList.remove('hidden');
+            localStorage.removeItem('loggedInUser'); 
+            
+            ['input-tab', 'report-tab', 'audit-tab', 'settings-tab'].forEach(id => {
+                document.getElementById(id).style.display = 'none';
+            });
+
+            document.getElementById('main-app').style.display = 'none';
+            document.getElementById('userInfo').style.display = 'none';
+            document.getElementById('login-screen').style.display = 'block';
+            
             document.getElementById('loginId').value = '';
             document.getElementById('loginPass').value = '';
         }
 
         function setupUIBasedOnRole() {
-            document.getElementById('btn-input-tab').classList.add('hidden');
-            document.getElementById('btn-audit-tab').classList.add('hidden');
-            document.getElementById('btn-settings-tab').classList.add('hidden');
+            document.getElementById('btn-input-tab').style.display = 'none';
+            document.getElementById('btn-audit-tab').style.display = 'none';
+            document.getElementById('btn-settings-tab').style.display = 'none';
             
             const adminCols = document.querySelectorAll('.admin-only');
-            adminCols.forEach(col => col.classList.add('hidden'));
+            adminCols.forEach(col => {
+                col.classList.add('hidden');
+                col.style.display = 'none';
+            });
 
             if (currentUser.role === 'admin') {
-                document.getElementById('btn-input-tab').classList.remove('hidden');
-                document.getElementById('btn-audit-tab').classList.remove('hidden');
-                document.getElementById('btn-settings-tab').classList.remove('hidden');
-                adminCols.forEach(col => col.classList.remove('hidden'));
+                document.getElementById('btn-input-tab').style.display = 'block';
+                document.getElementById('btn-audit-tab').style.display = 'block';
+                document.getElementById('btn-settings-tab').style.display = 'block';
+                
+                adminCols.forEach(col => {
+                    col.classList.remove('hidden');
+                    col.style.display = ''; // استعادة العرض الافتراضي للجدول
+                });
+                
                 renderUsersTable();
-                switchTab('report-tab');
+                switchTab('input-tab'); // فتح الإدخال كشاشة رئيسية للمدير
             } else if (currentUser.role === 'entry') {
-                document.getElementById('btn-input-tab').classList.remove('hidden');
-                switchTab('input-tab');
+                document.getElementById('btn-input-tab').style.display = 'block';
+                switchTab('input-tab'); // فتح الإدخال كشاشة رئيسية للمدخل
             } else {
-                switchTab('report-tab');
+                switchTab('report-tab'); // التقارير للمستعرض
             }
         }
 
@@ -299,7 +363,7 @@
                     <td class="border p-1">${u.name}</td>
                     <td class="border p-1">${u.role === 'admin' ? 'مدير' : (u.role === 'entry' ? 'مدخل' : 'مستعرض')}</td>
                     <td class="border p-1">
-                        ${u.id !== 'admin' ? `<button onclick="deleteUser('${u.id}')" class="text-red-600 font-bold">X</button>` : '-'}
+                        ${u.id !== 'admin' && u.id !== currentUser.id ? `<button onclick="deleteUser('${u.id}')" class="text-red-600 font-bold">X</button>` : '-'}
                     </td>
                 </tr>
             `).join('');
@@ -335,15 +399,27 @@
         }
 
         function switchTab(tabId) {
-            document.querySelectorAll('#main-app > div.max-w-2xl > div').forEach(div => div.style.display = 'none');
-            document.getElementById(tabId).style.display = 'block';
+            // إجبار المتصفح على إخفاء كل التبويبات مباشرة
+            ['input-tab', 'report-tab', 'audit-tab', 'settings-tab'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.style.display = 'none';
+            });
             
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active', 'border-b-4', 'border-blue-600', 'text-blue-600'));
+            // إظهار التبويب المطلوب
+            const activeTab = document.getElementById(tabId);
+            if (activeTab) activeTab.style.display = 'block';
+            
+            // تعديل ألوان الأزرار العلوية
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active', 'border-b-4', 'border-blue-600', 'text-blue-600');
+            });
             const activeBtn = document.getElementById('btn-' + tabId);
-            if(activeBtn) activeBtn.classList.add('active', 'border-b-4', 'border-blue-600', 'text-blue-600');
+            if(activeBtn) {
+                activeBtn.classList.add('active', 'border-b-4', 'border-blue-600', 'text-blue-600');
+            }
 
             if(tabId === 'input-tab' && !document.getElementById('editingTxnId').value) {
-                document.getElementById('dateInput').valueAsDate = new Date();
+                document.getElementById('dateInput').value = getTodayString();
             }
 
             if(tabId === 'report-tab') generateReport();
@@ -463,7 +539,7 @@
 
             localStorage.setItem('fuelData', JSON.stringify(data));
             document.getElementById('quantityInput').value = "";
-            document.getElementById('dateInput').valueAsDate = new Date();
+            document.getElementById('dateInput').value = getTodayString();
         }
 
         function initiateEdit(txnId) {
@@ -482,7 +558,9 @@
             document.getElementById('formTitle').classList.replace('text-gray-800', 'text-red-600');
             document.getElementById('submitBtn').innerText = "تحديث واعتماد التعديل";
             document.getElementById('submitBtn').classList.replace('bg-blue-600', 'bg-red-600');
+            
             document.getElementById('cancelEditBtn').classList.remove('hidden');
+            document.getElementById('cancelEditBtn').style.display = 'block';
             
             switchTab('input-tab');
         }
@@ -490,13 +568,15 @@
         function cancelEdit() {
             document.getElementById('editingTxnId').value = "";
             document.getElementById('fuelForm').reset();
-            document.getElementById('dateInput').valueAsDate = new Date();
+            document.getElementById('dateInput').value = getTodayString();
             
             document.getElementById('formTitle').innerText = "تسجيل بيانات جديدة";
             document.getElementById('formTitle').classList.replace('text-red-600', 'text-gray-800');
             document.getElementById('submitBtn').innerText = "حفظ البيانات";
             document.getElementById('submitBtn').classList.replace('bg-red-600', 'bg-blue-600');
+            
             document.getElementById('cancelEditBtn').classList.add('hidden');
+            document.getElementById('cancelEditBtn').style.display = 'none';
         }
 
         function deleteRecord(txnId) {
