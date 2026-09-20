@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تطبيق إدارة المحروقات</title>
+    <!-- مكتبة التصميم Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- مكتبة تصدير إكسل SheetJS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- مكتبة تصدير PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f3f4f6; }
+        .tab-btn.active { border-bottom: 4px solid #2563eb; color: #2563eb; font-weight: bold; }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <!-- شريط العنوان -->
+    <header class="bg-blue-600 text-white p-4 shadow-md text-center">
+        <h1 class="text-xl font-bold">تقرير كمية المحروقات الواردة</h1>
+    </header>
+
+    <!-- التنقل بين الشاشات -->
+    <div class="flex justify-around bg-white shadow-sm mb-4">
+        <button onclick="switchTab('input-tab')" id="btn-input-tab" class="tab-btn active w-1/2 py-3 text-gray-600">تسجيل شحنة</button>
+        <button onclick="switchTab('report-tab')" id="btn-report-tab" class="tab-btn w-1/2 py-3 text-gray-600">التقارير والتصدير</button>
+    </div>
+
+    <div class="max-w-md mx-auto p-4">
+        
+        <!-- شاشة إدخال البيانات -->
+        <div id="input-tab" class="block">
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-lg font-semibold mb-4 border-b pb-2">تسجيل بيانات جديدة</h2>
+                <form id="fuelForm" onsubmit="saveData(event)">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-1">التاريخ</label>
+                        <input type="date" id="dateInput" required class="w-full border p-2 rounded focus:ring focus:ring-blue-200">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-1">الجهة المستفيدة</label>
+                        <input type="text" id="beneficiaryInput" placeholder="مثال: UNOPS" required class="w-full border p-2 rounded focus:ring focus:ring-blue-200">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-1">نوع الوقود / الصنف</label>
+                        <select id="typeInput" required class="w-full border p-2 rounded focus:ring focus:ring-blue-200">
+                            <option value="الغاز">الغاز</option>
+                            <option value="سولار تجاري">سولار تجاري</option>
+                            <option value="سولار مؤسسات">سولار مؤسسات</option>
+                            <option value="بنزين تجاري">بنزين تجاري</option>
+                            <option value="بنزين مؤسسات">بنزين مؤسسات</option>
+                        </select>
+                    </div>
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium mb-1">الكمية (لتر / طن)</label>
+                        <input type="number" id="quantityInput" placeholder="أدخل الكمية" required class="w-full border p-2 rounded focus:ring focus:ring-blue-200">
+                    </div>
+                    <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 rounded hover:bg-blue-700 transition">حفظ البيانات</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- شاشة التقارير -->
+        <div id="report-tab" class="hidden">
+            <div class="bg-white p-4 rounded-lg shadow-md mb-4">
+                <h2 class="text-lg font-semibold mb-3 border-b pb-2">فلترة التقرير</h2>
+                <div class="flex gap-2 mb-3">
+                    <div class="w-1/2">
+                        <label class="block text-xs font-medium mb-1">من تاريخ</label>
+                        <input type="date" id="startDate" class="w-full border p-2 rounded text-sm">
+                    </div>
+                    <div class="w-1/2">
+                        <label class="block text-xs font-medium mb-1">إلى تاريخ</label>
+                        <input type="date" id="endDate" class="w-full border p-2 rounded text-sm">
+                    </div>
+                </div>
+                <button onclick="generateReport()" class="w-full bg-gray-800 text-white font-bold py-2 rounded mb-2 hover:bg-gray-900">تحديث التقرير</button>
+                
+                <div class="flex gap-2 mt-4">
+                    <button onclick="exportExcel()" class="w-1/2 bg-green-600 text-white text-sm font-bold py-2 rounded hover:bg-green-700">تصدير Excel</button>
+                    <button onclick="exportPDF()" class="w-1/2 bg-red-600 text-white text-sm font-bold py-2 rounded hover:bg-red-700">تصدير PDF</button>
+                </div>
+                <button onclick="clearData()" class="w-full bg-red-100 text-red-600 text-xs font-bold py-2 rounded mt-3">مسح كل البيانات المحفوظة</button>
+            </div>
+
+            <!-- المنطقة التي سيتم تحويلها لـ PDF -->
+            <div id="printable-report" class="bg-white p-4 rounded-lg shadow-md mt-4">
+                <h2 class="text-center font-bold text-lg mb-4">تقرير كمية المحروقات الواردة</h2>
+                
+                <!-- جدول التفاصيل اليومية -->
+                <h3 class="font-semibold text-sm mb-2 text-blue-800">تفاصيل الواردات</h3>
+                <div class="overflow-x-auto mb-6">
+                    <table class="w-full text-sm text-center border-collapse border border-gray-300">
+                        <thead>
+                            <tr class="bg-gray-200">
+                                <th class="border border-gray-300 p-1">التاريخ</th>
+                                <th class="border border-gray-300 p-1">الجهة المستفيدة</th>
+                                <th class="border border-gray-300 p-1">الصنف</th>
+                                <th class="border border-gray-300 p-1">الكمية</th>
+                            </tr>
+                        </thead>
+                        <tbody id="reportTableBody">
+                            <!-- سيتم حقن البيانات هنا -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- جدول الإجماليات -->
+                <h3 class="font-semibold text-sm mb-2 text-blue-800">إجمالي الكمية حسب الصنف</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-center border-collapse border border-gray-300">
+                        <thead>
+                            <tr class="bg-gray-200">
+                                <th class="border border-gray-300 p-2">الصنف</th>
+                                <th class="border border-gray-300 p-2">إجمالي الكمية</th>
+                            </tr>
+                        </thead>
+                        <tbody id="summaryTableBody">
+                            <!-- سيتم حقن الإجماليات هنا -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // تعيين تاريخ اليوم افتراضياً
+        document.getElementById('dateInput').valueAsDate = new Date();
+        document.getElementById('startDate').valueAsDate = new Date();
+        document.getElementById('endDate').valueAsDate = new Date();
+
+        // التبديل بين شاشتي الإدخال والتقارير
+        function switchTab(tabId) {
+            document.getElementById('input-tab').style.display = tabId === 'input-tab' ? 'block' : 'none';
+            document.getElementById('report-tab').style.display = tabId === 'report-tab' ? 'block' : 'none';
+            
+            document.getElementById('btn-input-tab').classList.toggle('active', tabId === 'input-tab');
+            document.getElementById('btn-report-tab').classList.toggle('active', tabId === 'report-tab');
+
+            if(tabId === 'report-tab') generateReport();
+        }
+
+        // دالة حفظ البيانات في LocalStorage
+        function saveData(e) {
+            e.preventDefault();
+            const record = {
+                date: document.getElementById('dateInput').value,
+                beneficiary: document.getElementById('beneficiaryInput').value,
+                type: document.getElementById('typeInput').value,
+                quantity: parseFloat(document.getElementById('quantityInput').value)
+            };
+
+            let data = JSON.parse(localStorage.getItem('fuelData')) || [];
+            data.push(record);
+            localStorage.setItem('fuelData', JSON.stringify(data));
+            
+            alert('تم حفظ البيانات بنجاح!');
+            document.getElementById('fuelForm').reset();
+            document.getElementById('dateInput').valueAsDate = new Date();
+        }
+
+        // دالة جلب وعرض التقرير بناء على التاريخ
+        function generateReport() {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            let data = JSON.parse(localStorage.getItem('fuelData')) || [];
+
+            // فلترة البيانات بناءً على التاريخ
+            const filteredData = data.filter(item => {
+                if(!startDate || !endDate) return true;
+                return item.date >= startDate && item.date <= endDate;
+            });
+
+            // تعبئة جدول التفاصيل
+            const reportBody = document.getElementById('reportTableBody');
+            reportBody.innerHTML = '';
+            filteredData.forEach(item => {
+                reportBody.innerHTML += `
+                    <tr>
+                        <td class="border border-gray-300 p-1">${item.date}</td>
+                        <td class="border border-gray-300 p-1">${item.beneficiary}</td>
+                        <td class="border border-gray-300 p-1">${item.type}</td>
+                        <td class="border border-gray-300 p-1">${item.quantity}</td>
+                    </tr>
+                `;
+            });
+
+            // حساب الإجماليات
+            const totals = {
+                "الغاز": 0,
+                "سولار تجاري": 0,
+                "سولار مؤسسات": 0,
+                "بنزين تجاري": 0,
+                "بنزين مؤسسات": 0
+            };
+
+            filteredData.forEach(item => {
+                if (totals[item.type] !== undefined) {
+                    totals[item.type] += item.quantity;
+                }
+            });
+
+            // تعبئة جدول الإجماليات (الجدول السفلي)
+            const summaryBody = document.getElementById('summaryTableBody');
+            summaryBody.innerHTML = '';
+            for (const [type, total] of Object.entries(totals)) {
+                summaryBody.innerHTML += `
+                    <tr>
+                        <td class="border border-gray-300 p-2 font-bold">${type}</td>
+                        <td class="border border-gray-300 p-2 text-blue-700 font-bold">${total}</td>
+                    </tr>
+                `;
+            }
+        }
+
+        // دالة تصدير البيانات إلى Excel
+        function exportExcel() {
+            let table = document.getElementById("printable-report");
+            let workbook = XLSX.utils.table_to_book(table, {sheet: "تقرير المحروقات"});
+            XLSX.writeFile(workbook, "تقرير_المحروقات.xlsx");
+        }
+
+        // دالة تصدير البيانات إلى PDF باستخدام html2pdf (لتجنب مشاكل اللغة العربية)
+        function exportPDF() {
+            const element = document.getElementById('printable-report');
+            const opt = {
+                margin:       0.5,
+                filename:     'تقرير_المحروقات.pdf',
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2 },
+                jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+            };
+            html2pdf().set(opt).from(element).save();
+        }
+
+        // مسح قاعدة البيانات
+        function clearData() {
+            if(confirm("هل أنت متأكد من مسح جميع السجلات المخزنة؟ لا يمكن التراجع عن هذا الإجراء.")) {
+                localStorage.removeItem('fuelData');
+                generateReport();
+                alert("تم مسح البيانات.");
+            }
+        }
+    </script>
+</body>
+</html>
