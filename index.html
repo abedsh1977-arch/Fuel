@@ -23,7 +23,6 @@
         </div>
     </header>
 
-    <!-- شاشة تسجيل الدخول -->
     <div id="login-screen" class="max-w-sm mx-auto mt-20 bg-white p-8 rounded-lg shadow-md block">
         <h2 class="text-xl font-bold mb-6 text-center text-blue-700">تسجيل الدخول</h2>
         <div class="mb-4">
@@ -37,20 +36,17 @@
         <button onclick="login()" class="w-full bg-blue-600 text-white font-bold py-2 rounded hover:bg-blue-700">دخول</button>
     </div>
 
-    <!-- الحاوية الرئيسية للتطبيق (مخفية قبل الدخول) -->
     <div id="main-app" class="hidden">
         
-        <!-- قائمة التنقل -->
         <div class="flex justify-around bg-white shadow-sm mb-4 text-sm font-medium" id="nav-menu">
             <button onclick="switchTab('input-tab')" id="btn-input-tab" class="tab-btn w-full py-3 text-gray-600">تسجيل شحنة</button>
             <button onclick="switchTab('report-tab')" id="btn-report-tab" class="tab-btn active w-full py-3 text-gray-600">التقارير</button>
             <button onclick="switchTab('audit-tab')" id="btn-audit-tab" class="tab-btn w-full py-3 text-gray-600 hidden">سجل المحذوفات</button>
-            <button onclick="switchTab('settings-tab')" id="btn-settings-tab" class="tab-btn w-full py-3 text-gray-600 hidden">الإعدادات والمستخدمين</button>
+            <button onclick="switchTab('settings-tab')" id="btn-settings-tab" class="tab-btn w-full py-3 text-gray-600 hidden">الإعدادات</button>
         </div>
 
         <div class="max-w-2xl mx-auto p-4">
             
-            <!-- شاشة إدخال البيانات -->
             <div id="input-tab" class="hidden">
                 <div class="bg-white p-6 rounded-lg shadow-md">
                     <h2 id="formTitle" class="text-lg font-semibold mb-4 border-b pb-2">تسجيل بيانات جديدة</h2>
@@ -91,7 +87,6 @@
                 </div>
             </div>
 
-            <!-- شاشة التقارير -->
             <div id="report-tab" class="block">
                 <div class="bg-white p-4 rounded-lg shadow-md mb-4">
                     <h2 class="text-lg font-semibold mb-3 border-b pb-2">فلترة التقرير</h2>
@@ -110,9 +105,12 @@
                         </div>
                     </div>
                     <button onclick="generateReport()" class="w-full bg-gray-800 text-white font-bold py-2 rounded mb-2 hover:bg-gray-900">تحديث التقرير</button>
-                    <div class="flex gap-2 mt-4">
-                        <button onclick="exportExcel('printable-report', 'التقرير_الرئيسي')" class="w-1/2 bg-green-600 text-white text-sm font-bold py-2 rounded">تصدير Excel</button>
-                        <button onclick="exportPDF('printable-report', 'التقرير_الرئيسي')" class="w-1/2 bg-red-600 text-white text-sm font-bold py-2 rounded">تصدير PDF</button>
+                    
+                    <div class="grid grid-cols-2 gap-2 mt-4">
+                        <button onclick="exportExcel('printable-report', 'التقرير_الرئيسي')" class="bg-green-600 text-white text-sm font-bold py-2 rounded">تنزيل Excel</button>
+                        <button onclick="shareExcel('printable-report', 'التقرير_الرئيسي')" class="bg-green-500 text-white text-sm font-bold py-2 rounded">مشاركة Excel</button>
+                        <button onclick="exportPDF('printable-report', 'التقرير_الرئيسي')" class="bg-red-600 text-white text-sm font-bold py-2 rounded">تنزيل PDF</button>
+                        <button onclick="sharePDF('printable-report', 'التقرير_الرئيسي')" class="bg-red-500 text-white text-sm font-bold py-2 rounded">مشاركة PDF</button>
                     </div>
                 </div>
 
@@ -125,7 +123,7 @@
                                     <th class="border border-gray-300 p-1">التاريخ</th>
                                     <th class="border border-gray-300 p-1">الجهة</th>
                                     <th class="border border-gray-300 p-1">الكمية والصنف</th>
-                                    <th class="border border-gray-300 p-1 admin-only hidden">إجراء</th>
+                                    <th class="border border-gray-300 p-1 admin-only hidden" data-html2canvas-ignore="true">إجراء</th>
                                 </tr>
                             </thead>
                             <tbody id="reportTableBody"></tbody>
@@ -147,7 +145,6 @@
                 </div>
             </div>
 
-            <!-- شاشة سجل التعديلات والمحذوفات (للمدير فقط) -->
             <div id="audit-tab" class="hidden">
                 <div class="bg-white p-4 rounded-lg shadow-md mb-4">
                     <h2 class="text-lg font-semibold mb-3 border-b pb-2 text-red-600">سجل المعاملات المحذوفة والمعدلة</h2>
@@ -167,10 +164,7 @@
                 </div>
             </div>
 
-            <!-- شاشة الإعدادات والمستخدمين -->
             <div id="settings-tab" class="hidden">
-                
-                <!-- إدارة المستخدمين -->
                 <div class="bg-white p-4 rounded-lg shadow-md mb-4 border-l-4 border-blue-600">
                     <h2 class="text-lg font-semibold mb-3 border-b pb-2">إدارة المستخدمين (المدير فقط)</h2>
                     <div class="grid grid-cols-2 gap-2 mb-3 text-sm">
@@ -200,7 +194,6 @@
                     </div>
                 </div>
 
-                <!-- إعدادات الأصناف والجهات -->
                 <div class="bg-white p-4 rounded-lg shadow-md mb-4">
                     <h2 class="text-sm font-semibold mb-2">إدارة الجهات المستفيدة</h2>
                     <div class="flex gap-2 mb-2">
@@ -224,24 +217,23 @@
     </div>
 
     <script>
-        // --- تهيئة النظام وصلاحيات المستخدمين ---
         let currentUser = null;
 
         function initSystem() {
-            // إنشاء المدير الافتراضي إذا لم يكن هناك مستخدمين
             let users = JSON.parse(localStorage.getItem('appUsers')) || [];
             if (users.length === 0) {
                 users.push({ id: 'admin', name: 'مدير النظام الافتراضي', pass: 'admin', role: 'admin' });
                 localStorage.setItem('appUsers', JSON.stringify(users));
             }
 
-            // تهيئة إعدادات الأصناف الافتراضية
             if (!localStorage.getItem('fuelTypes')) {
                 localStorage.setItem('fuelTypes', JSON.stringify(["الغاز", "سولار تجاري", "سولار مؤسسات", "بنزين تجاري", "بنزين مؤسسات"]));
             }
             if (!localStorage.getItem('beneficiaries')) {
                 localStorage.setItem('beneficiaries', JSON.stringify(["UNOPS"]));
             }
+            
+            document.getElementById('dateInput').valueAsDate = new Date();
         }
 
         function login() {
@@ -271,13 +263,11 @@
             document.getElementById('main-app').classList.add('hidden');
             document.getElementById('userInfo').classList.add('hidden');
             document.getElementById('login-screen').classList.remove('hidden');
-            
             document.getElementById('loginId').value = '';
             document.getElementById('loginPass').value = '';
         }
 
         function setupUIBasedOnRole() {
-            // إخفاء كل التبويبات أولاً
             document.getElementById('btn-input-tab').classList.add('hidden');
             document.getElementById('btn-audit-tab').classList.add('hidden');
             document.getElementById('btn-settings-tab').classList.add('hidden');
@@ -296,12 +286,10 @@
                 document.getElementById('btn-input-tab').classList.remove('hidden');
                 switchTab('input-tab');
             } else {
-                // viewer
                 switchTab('report-tab');
             }
         }
 
-        // --- إدارة المستخدمين (للمدير) ---
         function renderUsersTable() {
             const users = JSON.parse(localStorage.getItem('appUsers')) || [];
             const tbody = document.getElementById('usersListTable');
@@ -346,7 +334,6 @@
             }
         }
 
-        // --- إعدادات الأصناف والواجهة العامة ---
         function switchTab(tabId) {
             document.querySelectorAll('#main-app > div.max-w-2xl > div').forEach(div => div.style.display = 'none');
             document.getElementById(tabId).style.display = 'block';
@@ -354,6 +341,10 @@
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active', 'border-b-4', 'border-blue-600', 'text-blue-600'));
             const activeBtn = document.getElementById('btn-' + tabId);
             if(activeBtn) activeBtn.classList.add('active', 'border-b-4', 'border-blue-600', 'text-blue-600');
+
+            if(tabId === 'input-tab' && !document.getElementById('editingTxnId').value) {
+                document.getElementById('dateInput').valueAsDate = new Date();
+            }
 
             if(tabId === 'report-tab') generateReport();
             if(tabId === 'audit-tab') generateAuditReport();
@@ -402,13 +393,30 @@
 
         function deleteSetting(key, i) {
             let items = JSON.parse(localStorage.getItem(key)) || [];
-            items.splice(i, 1);
-            localStorage.setItem(key, JSON.stringify(items));
-            renderSettingsList(key, key === 'fuelTypes' ? 'fuelTypesList' : 'beneficiariesList');
-            updateSelectOptions();
+            const itemToDelete = items[i];
+            
+            let fuelData = JSON.parse(localStorage.getItem('fuelData')) || [];
+            let isUsed = false;
+            
+            if (key === 'fuelTypes') {
+                isUsed = fuelData.some(record => record.type === itemToDelete);
+            } else if (key === 'beneficiaries') {
+                isUsed = fuelData.some(record => record.beneficiary === itemToDelete);
+            }
+            
+            if (isUsed) {
+                alert("لا يمكن حذف هذا العنصر لارتباطه بمعاملات سابقة أو حالية مسجلة في قاعدة البيانات.");
+                return;
+            }
+
+            if(confirm("هل أنت متأكد من الحذف؟")) {
+                items.splice(i, 1);
+                localStorage.setItem(key, JSON.stringify(items));
+                renderSettingsList(key, key === 'fuelTypes' ? 'fuelTypesList' : 'beneficiariesList');
+                updateSelectOptions();
+            }
         }
 
-        // --- إدارة الشحنات (حفظ، تعديل، حذف منطقي) ---
         function promptAdminPassword() {
             const pass = prompt("إجراء إداري: الرجاء إدخال كلمة المرور لاعتماد التعديل أو الحذف:");
             if(pass === currentUser.pass) return true;
@@ -422,7 +430,7 @@
             let data = JSON.parse(localStorage.getItem('fuelData')) || [];
             
             const newRecord = {
-                id: editingId ? editingId : Date.now().toString(), // الاحتفاظ بـ ID عند التعديل
+                id: editingId ? editingId : Date.now().toString(),
                 date: document.getElementById('dateInput').value,
                 beneficiary: document.getElementById('beneficiaryInput').value,
                 type: document.getElementById('typeInput').value,
@@ -434,10 +442,8 @@
             };
 
             if (editingId) {
-                // إذا كان في وضع التعديل
                 if(!promptAdminPassword()) return;
                 
-                // البحث عن السجل القديم وجعله (معدل/محذوف منطقياً)
                 const oldRecordIndex = data.findIndex(r => r.id === editingId && r.status === 'active');
                 if(oldRecordIndex > -1) {
                     data[oldRecordIndex].isDeleted = true;
@@ -445,14 +451,12 @@
                     data[oldRecordIndex].actionBy = currentUser.name;
                     data[oldRecordIndex].actionTime = new Date().toLocaleString('ar-EG');
                     
-                    // توليد ID جديد للنسخة المُحدثة لكي تعمل بشكل سليم
                     newRecord.id = Date.now().toString(); 
                     data.push(newRecord);
                 }
                 alert('تم اعتماد التعديل بنجاح');
                 cancelEdit();
             } else {
-                // تسجيل جديد
                 data.push(newRecord);
                 alert('تم الحفظ بنجاح!');
             }
@@ -511,14 +515,12 @@
             }
         }
 
-        // --- التقارير ---
         function generateReport() {
             const startDate = document.getElementById('startDate').value;
             const endDate = document.getElementById('endDate').value;
             const typeFilter = document.getElementById('typeFilter').value;
             let data = JSON.parse(localStorage.getItem('fuelData')) || [];
 
-            // عرض المعاملات النشطة فقط (غير المحذوفة/المعدلة القديمة)
             const activeData = data.filter(item => !item.isDeleted);
 
             const filteredData = activeData.filter(item => {
@@ -535,7 +537,7 @@
                 let actionButtons = '';
                 if(currentUser && currentUser.role === 'admin') {
                     actionButtons = `
-                        <td class="border border-gray-300 p-1 admin-only">
+                        <td class="border border-gray-300 p-1 admin-only" data-html2canvas-ignore="true">
                             <button onclick="initiateEdit('${item.id}')" class="text-blue-600 mx-1">✏️</button>
                             <button onclick="deleteRecord('${item.id}')" class="text-red-600 mx-1">❌</button>
                         </td>
@@ -579,13 +581,11 @@
 
         function generateAuditReport() {
             let data = JSON.parse(localStorage.getItem('fuelData')) || [];
-            // تصفية السجلات المحذوفة أو المعدلة (النسخ القديمة)
             const auditData = data.filter(item => item.isDeleted === true);
             
             const tbody = document.getElementById('auditTableBody');
             tbody.innerHTML = '';
             
-            // الترتيب من الأحدث للأقدم
             auditData.reverse().forEach(item => {
                 let badgeClass = item.status === 'deleted' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800';
                 let actionText = item.status === 'deleted' ? 'حذف' : 'تعديل (نسخة قديمة)';
@@ -623,7 +623,37 @@
             }).from(element).save();
         }
 
-        document.getElementById('dateInput').valueAsDate = new Date();
+        async function sharePDF(tableId, name) {
+            const element = document.getElementById(tableId);
+            const opt = { margin: 0.5, filename: name + '.pdf', image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }};
+            html2pdf().set(opt).from(element).outputPdf('blob').then(async function(pdfBlob) {
+                const file = new File([pdfBlob], name + ".pdf", { type: "application/pdf" });
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    try { await navigator.share({ files: [file], title: 'تقرير المحروقات', text: 'مرفق التقرير' }); } 
+                    catch (e) { console.error(e); }
+                } else {
+                    alert("متصفحك لا يدعم المشاركة المباشرة للملفات. سيتم تنزيل الملف.");
+                    html2pdf().set(opt).from(element).save();
+                }
+            });
+        }
+
+        async function shareExcel(tableId, name) {
+            let table = document.getElementById(tableId);
+            let workbook = XLSX.utils.table_to_book(table, {sheet: "التقرير"});
+            let wbout = XLSX.write(workbook, {bookType:'xlsx', type:'array'});
+            let blob = new Blob([wbout], {type: "application/octet-stream"});
+            let file = new File([blob], name + ".xlsx", {type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+            
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                try { await navigator.share({ files: [file], title: 'تقرير المحروقات', text: 'مرفق التقرير بصيغة Excel' }); } 
+                catch (e) { console.error(e); }
+            } else {
+                alert("متصفحك لا يدعم المشاركة المباشرة للملفات. سيتم تنزيل الملف.");
+                XLSX.writeFile(workbook, name + ".xlsx");
+            }
+        }
+
         initSystem();
     </script>
 </body>
