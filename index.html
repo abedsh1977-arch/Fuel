@@ -831,18 +831,128 @@
             }
         }
 
+        // دالة إنشاء ملف Excel منظم واحترافي يطابق تصميم التقرير
         function exportExcel(tableId, name) {
             updateExportFooter();
-            let table = document.getElementById(tableId);
-            let workbook = XLSX.utils.table_to_book(table, {sheet: "التقرير"});
-            XLSX.writeFile(workbook, name + ".xlsx");
+            const periodText = document.getElementById('reportPeriodDisplay').innerText;
+            const userName = currentUser ? currentUser.name : 'غير معروف';
+            const nowTime = new Date().toLocaleString('ar-EG');
+
+            let wsData = [
+                ["تقرير كمية المحروقات"],
+                [periodText],
+                [""],
+                ["تفاصيل الحركات"],
+                ["التاريخ", "الجهة المستفيدة", "الصنف", "الكمية"]
+            ];
+
+            let activeData = JSON.parse(localStorage.getItem('fuelData')) || [];
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            const typeFilter = document.getElementById('typeFilter').value;
+
+            activeData = activeData.filter(item => !item.isDeleted).filter(item => {
+                let passDate = true, passType = true;
+                if (startDate) passDate = passDate && (item.date >= startDate);
+                if (endDate) passDate = passDate && (item.date <= endDate);
+                if (typeFilter !== 'الكل') passType = (item.type === typeFilter);
+                return passDate && passType;
+            });
+
+            activeData.forEach(item => {
+                wsData.push([item.date, item.beneficiary, item.type, `${item.quantity} ${item.unit || ''}`]);
+            });
+
+            wsData.push([""]);
+            wsData.push(["إجمالي الكمية حسب الصنف"]);
+            wsData.push(["الصنف", "إجمالي الكمية"]);
+
+            const totals = {};
+            const currentFuelTypes = JSON.parse(localStorage.getItem('fuelTypes')) || [];
+            if (typeFilter === 'الكل') currentFuelTypes.forEach(t => totals[t] = 0);
+            else totals[typeFilter] = 0;
+
+            activeData.forEach(item => {
+                if (totals[item.type] !== undefined) totals[item.type] += item.quantity;
+                else if (typeFilter === 'الكل') totals[item.type] = item.quantity;
+            });
+
+            for (const [type, total] of Object.entries(totals)) {
+                if (total > 0 || (currentFuelTypes.includes(type) && (typeFilter === 'الكل' || typeFilter === type))) {
+                    let displayUnit = (type.includes("غاز") || type.includes("الغاز")) ? "طن" : "لتر";
+                    wsData.push([type, `${total} ${displayUnit}`]);
+                }
+            }
+
+            wsData.push([""]);
+            wsData.push([`طُبع بواسطة: ${userName}`, `تاريخ ووقت الاستخراج: ${nowTime}`]);
+
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+            XLSX.utils.book_append_sheet(wb, ws, "التقرير");
+            XLSX.writeFile(wb, name + ".xlsx");
         }
 
         async function shareExcel(tableId, name) {
             updateExportFooter();
-            let table = document.getElementById(tableId);
-            let workbook = XLSX.utils.table_to_book(table, {sheet: "التقرير"});
-            let wbout = XLSX.write(workbook, {bookType:'xlsx', type:'array'});
+            const periodText = document.getElementById('reportPeriodDisplay').innerText;
+            const userName = currentUser ? currentUser.name : 'غير معروف';
+            const nowTime = new Date().toLocaleString('ar-EG');
+
+            let wsData = [
+                ["تقرير كمية المحروقات"],
+                [periodText],
+                [""],
+                ["تفاصيل الحركات"],
+                ["التاريخ", "الجهة المستفيدة", "الصنف", "الكمية"]
+            ];
+
+            let activeData = JSON.parse(localStorage.getItem('fuelData')) || [];
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            const typeFilter = document.getElementById('typeFilter').value;
+
+            activeData = activeData.filter(item => !item.isDeleted).filter(item => {
+                let passDate = true, passType = true;
+                if (startDate) passDate = passDate && (item.date >= startDate);
+                if (endDate) passDate = passDate && (item.date <= endDate);
+                if (typeFilter !== 'الكل') passType = (item.type === typeFilter);
+                return passDate && passType;
+            });
+
+            activeData.forEach(item => {
+                wsData.push([item.date, item.beneficiary, item.type, `${item.quantity} ${item.unit || ''}`]);
+            });
+
+            wsData.push([""]);
+            wsData.push(["إجمالي الكمية حسب الصنف"]);
+            wsData.push(["الصنف", "إجمالي الكمية"]);
+
+            const totals = {};
+            const currentFuelTypes = JSON.parse(localStorage.getItem('fuelTypes')) || [];
+            if (typeFilter === 'الكل') currentFuelTypes.forEach(t => totals[t] = 0);
+            else totals[typeFilter] = 0;
+
+            activeData.forEach(item => {
+                if (totals[item.type] !== undefined) totals[item.type] += item.quantity;
+                else if (typeFilter === 'الكل') totals[item.type] = item.quantity;
+            });
+
+            for (const [type, total] of Object.entries(totals)) {
+                if (total > 0 || (currentFuelTypes.includes(type) && (typeFilter === 'الكل' || typeFilter === type))) {
+                    let displayUnit = (type.includes("غاز") || type.includes("الغاز")) ? "طن" : "لتر";
+                    wsData.push([type, `${total} ${displayUnit}`]);
+                }
+            }
+
+            wsData.push([""]);
+            wsData.push([`طُبع بواسطة: ${userName}`, `تاريخ ووقت الاستخراج: ${nowTime}`]);
+
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+            XLSX.utils.book_append_sheet(wb, ws, "التقرير");
+
+            let wbout = XLSX.write(wb, {bookType:'xlsx', type:'array'});
             let blob = new Blob([wbout], {type: "application/octet-stream"});
             let file = new File([blob], name + ".xlsx", {type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
             
@@ -853,7 +963,7 @@
                     console.error(e); 
                 }
             } else {
-                XLSX.writeFile(workbook, name + ".xlsx");
+                XLSX.writeFile(wb, name + ".xlsx");
             }
         }
 
