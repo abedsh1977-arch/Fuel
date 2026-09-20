@@ -831,7 +831,6 @@
             }
         }
 
-        // دالة إنشاء ملف Excel منظم واحترافي يطابق تصميم التقرير
         function exportExcel(tableId, name) {
             updateExportFooter();
             const periodText = document.getElementById('reportPeriodDisplay').innerText;
@@ -967,15 +966,17 @@
             }
         }
 
+        // تم ضبط إعدادات الـ PDF لتفادي قص الصفحات وضبط الهوامش بدقة
         function exportPDF(tableId, name) {
             updateExportFooter();
             const element = document.getElementById(tableId);
             const opt = {
-                margin: 0.5,
+                margin: [0.3, 0.3, 0.3, 0.3],
                 filename: name + '.pdf',
                 image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2 },
-                jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+                html2canvas: { scale: 2, useCORS: true },
+                jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' },
+                pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
             };
             html2pdf().set(opt).from(element).outputPdf('blob').then(function(pdfBlob) {
                 const blobUrl = URL.createObjectURL(pdfBlob);
@@ -992,7 +993,14 @@
         function sharePDF(tableId, name) {
             updateExportFooter();
             const element = document.getElementById(tableId);
-            const opt = { margin: 0.5, filename: name + '.pdf', image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }};
+            const opt = { 
+                margin: [0.3, 0.3, 0.3, 0.3], 
+                filename: name + '.pdf', 
+                image: { type: 'jpeg', quality: 0.98 }, 
+                html2canvas: { scale: 2, useCORS: true }, 
+                jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' },
+                pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+            };
             html2pdf().set(opt).from(element).output('blob').then(function(pdfBlob) {
                 const file = new File([pdfBlob], name + ".pdf", { type: "application/pdf" });
                 if (navigator.canShare && navigator.canShare({ files: [file] })) {
