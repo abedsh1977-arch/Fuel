@@ -148,7 +148,6 @@
                     </div>
                 </div>
 
-                <!-- تصميم التقرير الاحترافي الجاهز للطباعة -->
                 <div id="printable-report" class="bg-white p-6 rounded-lg shadow-md mt-4 border border-gray-200">
                     <div class="text-center border-b-2 border-blue-600 pb-4 mb-4">
                         <h2 class="font-bold text-xl text-blue-900 mb-1">تقرير كمية المحروقات</h2>
@@ -861,13 +860,23 @@
         function exportPDF(tableId, name) {
             updateExportFooter();
             const element = document.getElementById(tableId);
-            html2pdf().set({
+            const opt = {
                 margin: 0.5,
                 filename: name + '.pdf',
                 image: { type: 'jpeg', quality: 0.98 },
                 html2canvas: { scale: 2 },
                 jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
-            }).from(element).save();
+            };
+            html2pdf().set(opt).from(element).outputPdf('blob').then(function(pdfBlob) {
+                const blobUrl = URL.createObjectURL(pdfBlob);
+                const a = document.createElement('a');
+                a.href = blobUrl;
+                a.download = name + '.pdf';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(blobUrl);
+            });
         }
 
         function sharePDF(tableId, name) {
@@ -882,10 +891,24 @@
                         title: 'تقرير المحروقات',
                         text: 'مرفق التقرير'
                     }).catch(function(e) {
-                        html2pdf().set(opt).from(element).save();
+                        const blobUrl = URL.createObjectURL(pdfBlob);
+                        const a = document.createElement('a');
+                        a.href = blobUrl;
+                        a.download = name + '.pdf';
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(blobUrl);
                     });
                 } else {
-                    html2pdf().set(opt).from(element).save();
+                    const blobUrl = URL.createObjectURL(pdfBlob);
+                    const a = document.createElement('a');
+                    a.href = blobUrl;
+                    a.download = name + '.pdf';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(blobUrl);
                 }
             });
         }
