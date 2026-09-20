@@ -38,7 +38,6 @@
 
     <div id="main-app" class="hidden" style="display: none;">
         
-        <!-- شريط التنقل -->
         <div class="flex justify-around bg-white shadow-sm mb-4 text-sm font-medium" id="nav-menu">
             <button onclick="switchTab('input-tab')" id="btn-input-tab" class="tab-btn active w-full py-3 text-gray-600 hidden" style="display: none;">تسجيل شحنة</button>
             <button onclick="switchTab('report-tab')" id="btn-report-tab" class="tab-btn w-full py-3 text-gray-600">التقارير</button>
@@ -48,7 +47,6 @@
 
         <div class="max-w-2xl mx-auto p-4">
             
-            <!-- شاشة الإدخال -->
             <div id="input-tab" class="hidden" style="display: none;">
                 <div class="bg-white p-6 rounded-lg shadow-md">
                     <h2 id="formTitle" class="text-lg font-semibold mb-4 border-b pb-2">تسجيل بيانات جديدة</h2>
@@ -89,7 +87,6 @@
                 </div>
             </div>
 
-            <!-- شاشة التقارير -->
             <div id="report-tab" class="hidden" style="display: none;">
                 <div class="bg-white p-4 rounded-lg shadow-md mb-4">
                     <h2 class="text-lg font-semibold mb-3 border-b pb-2">فلترة التقرير</h2>
@@ -118,14 +115,17 @@
                 </div>
 
                 <div id="printable-report" class="bg-white p-4 rounded-lg shadow-md mt-4">
-                    <h2 class="text-center font-bold text-lg mb-4">تقرير كمية المحروقات</h2>
+                    <h2 class="text-center font-bold text-lg mb-2">تقرير كمية المحروقات</h2>
+                    <p id="reportPeriodDisplay" class="text-center text-sm text-gray-600 mb-4 font-semibold"></p>
+                    
                     <div class="overflow-x-auto mb-6">
                         <table class="w-full text-sm text-center border-collapse border border-gray-300">
                             <thead>
                                 <tr class="bg-gray-200">
                                     <th class="border border-gray-300 p-1">التاريخ</th>
-                                    <th class="border border-gray-300 p-1">الجهة</th>
-                                    <th class="border border-gray-300 p-1">الكمية والصنف</th>
+                                    <th class="border border-gray-300 p-1">الجهة المستفيدة</th>
+                                    <th class="border border-gray-300 p-1">الصنف</th>
+                                    <th class="border border-gray-300 p-1">الكمية</th>
                                     <th class="border border-gray-300 p-1 admin-only hidden" data-html2canvas-ignore="true">إجراء</th>
                                 </tr>
                             </thead>
@@ -148,7 +148,6 @@
                 </div>
             </div>
 
-            <!-- سجل المحذوفات -->
             <div id="audit-tab" class="hidden" style="display: none;">
                 <div class="bg-white p-4 rounded-lg shadow-md mb-4">
                     <h2 class="text-lg font-semibold mb-3 border-b pb-2 text-red-600">سجل المعاملات المحذوفة والمعدلة</h2>
@@ -168,7 +167,6 @@
                 </div>
             </div>
 
-            <!-- شاشة الإعدادات -->
             <div id="settings-tab" class="hidden" style="display: none;">
                 <div class="bg-white p-4 rounded-lg shadow-md mb-4 border-l-4 border-blue-600">
                     <h2 class="text-lg font-semibold mb-3 border-b pb-2">إدارة المستخدمين (المدير فقط)</h2>
@@ -337,7 +335,6 @@
         }
 
         function setupUIBasedOnRole() {
-            // إخفاء الأزرار بشكل صريح أولاً
             ['btn-input-tab', 'btn-audit-tab', 'btn-settings-tab'].forEach(id => {
                 const el = document.getElementById(id);
                 if(el) {
@@ -423,7 +420,6 @@
         }
 
         function switchTab(tabId) {
-            // إخفاء جميع التبويبات بالكامل
             ['input-tab', 'report-tab', 'audit-tab', 'settings-tab'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) {
@@ -432,14 +428,12 @@
                 }
             });
             
-            // إظهار التبويب المطلوب
             const activeTab = document.getElementById(tabId);
             if (activeTab) {
                 activeTab.classList.remove('hidden');
                 activeTab.style.display = 'block';
             }
             
-            // تحديث ألوان أزرار التنقل
             document.querySelectorAll('.tab-btn').forEach(btn => {
                 btn.classList.remove('active', 'border-b-4', 'border-blue-600', 'text-blue-600');
             });
@@ -631,6 +625,17 @@
             const typeFilter = document.getElementById('typeFilter').value;
             let data = JSON.parse(localStorage.getItem('fuelData')) || [];
 
+            // تحديث نص الفترة في التقرير
+            let periodText = "الفترة: جميع السجلات";
+            if (startDate && endDate) {
+                periodText = `الفترة من: ${startDate} إلى: ${endDate}`;
+            } else if (startDate) {
+                periodText = `الفترة من: ${startDate}`;
+            } else if (endDate) {
+                periodText = `الفترة حتى: ${endDate}`;
+            }
+            document.getElementById('reportPeriodDisplay').innerText = periodText;
+
             const activeData = data.filter(item => !item.isDeleted);
 
             const filteredData = activeData.filter(item => {
@@ -658,7 +663,8 @@
                     <tr>
                         <td class="border border-gray-300 p-1">${item.date}</td>
                         <td class="border border-gray-300 p-1">${item.beneficiary}</td>
-                        <td class="border border-gray-300 p-1" dir="ltr"><span class="font-bold">${item.quantity}</span> <span class="text-xs text-gray-500">${item.unit||''}</span> - ${item.type}</td>
+                        <td class="border border-gray-300 p-1">${item.type}</td>
+                        <td class="border border-gray-300 p-1" dir="ltr"><span class="font-bold">${item.quantity}</span> <span class="text-xs text-gray-500">${item.unit||''}</span></td>
                         ${actionButtons}
                     </tr>
                 `;
@@ -733,14 +739,19 @@
             }).from(element).save();
         }
 
-        async function sharePDF(tableId, name) {
+        function sharePDF(tableId, name) {
             const element = document.getElementById(tableId);
             const opt = { margin: 0.5, filename: name + '.pdf', image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }};
-            html2pdf().set(opt).from(element).outputPdf('blob').then(async function(pdfBlob) {
+            html2pdf().set(opt).from(element).output('blob').then(function(pdfBlob) {
                 const file = new File([pdfBlob], name + ".pdf", { type: "application/pdf" });
                 if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                    try { await navigator.share({ files: [file], title: 'تقرير المحروقات', text: 'مرفق التقرير' }); } 
-                    catch (e) { console.error(e); }
+                    navigator.share({
+                        files: [file],
+                        title: 'تقرير المحروقات',
+                        text: 'مرفق التقرير'
+                    }).catch(function(e) {
+                        html2pdf().set(opt).from(element).save();
+                    });
                 } else {
                     alert("متصفحك لا يدعم المشاركة المباشرة للملفات. سيتم تنزيل الملف.");
                     html2pdf().set(opt).from(element).save();
