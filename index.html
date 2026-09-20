@@ -47,6 +47,7 @@
 
         <div class="max-w-2xl mx-auto p-4">
             
+            <!-- شاشة الإدخال -->
             <div id="input-tab" class="hidden" style="display: none;">
                 <div class="bg-white p-6 rounded-lg shadow-md">
                     <h2 id="formTitle" class="text-lg font-semibold mb-4 border-b pb-2">تسجيل بيانات جديدة</h2>
@@ -87,6 +88,7 @@
                 </div>
             </div>
 
+            <!-- شاشة التقارير -->
             <div id="report-tab" class="hidden" style="display: none;">
                 <div class="bg-white p-4 rounded-lg shadow-md mb-4">
                     <h2 class="text-lg font-semibold mb-3 border-b pb-2">فلترة التقرير</h2>
@@ -115,6 +117,7 @@
                 </div>
 
                 <div id="printable-report" class="bg-white p-4 rounded-lg shadow-md mt-4">
+                    <!-- عنوان التقرير وفترته -->
                     <h2 class="text-center font-bold text-lg mb-2">تقرير كمية المحروقات</h2>
                     <p id="reportPeriodDisplay" class="text-center text-sm text-gray-600 mb-4 font-semibold"></p>
                     
@@ -145,9 +148,20 @@
                             <tbody id="summaryTableBody"></tbody>
                         </table>
                     </div>
+
+                    <!-- تذييل التقرير الجديد (اسم المستخدم ووقت التصدير) -->
+                    <div class="mt-8 border-t border-gray-300 pt-4">
+                        <table class="w-full text-xs text-gray-600 font-semibold" id="reportFooterTable">
+                            <tr>
+                                <td class="text-right w-1/2" id="footerUser"></td>
+                                <td class="text-left w-1/2" id="footerTime" dir="ltr"></td>
+                            </tr>
+                        </table>
+                    </div>
                 </div>
             </div>
 
+            <!-- سجل المحذوفات -->
             <div id="audit-tab" class="hidden" style="display: none;">
                 <div class="bg-white p-4 rounded-lg shadow-md mb-4">
                     <h2 class="text-lg font-semibold mb-3 border-b pb-2 text-red-600">سجل المعاملات المحذوفة والمعدلة</h2>
@@ -167,6 +181,7 @@
                 </div>
             </div>
 
+            <!-- شاشة الإعدادات -->
             <div id="settings-tab" class="hidden" style="display: none;">
                 <div class="bg-white p-4 rounded-lg shadow-md mb-4 border-l-4 border-blue-600">
                     <h2 class="text-lg font-semibold mb-3 border-b pb-2">إدارة المستخدمين (المدير فقط)</h2>
@@ -625,7 +640,7 @@
             const typeFilter = document.getElementById('typeFilter').value;
             let data = JSON.parse(localStorage.getItem('fuelData')) || [];
 
-            // تحديث نص الفترة في التقرير
+            // تحديث نص الفترة
             let periodText = "الفترة: جميع السجلات";
             if (startDate && endDate) {
                 periodText = `الفترة من: ${startDate} إلى: ${endDate}`;
@@ -722,13 +737,24 @@
             });
         }
 
+        // دالة تحديث التذييل (اسم المستخدم ووقت التصدير)
+        function updateExportFooter() {
+            if(currentUser) {
+                const now = new Date();
+                document.getElementById('footerUser').innerText = `المستخدم: ${currentUser.name}`;
+                document.getElementById('footerTime').innerText = `تاريخ الاستخراج: ${now.toLocaleString('ar-EG')}`;
+            }
+        }
+
         function exportExcel(tableId, name) {
+            updateExportFooter();
             let table = document.getElementById(tableId);
             let workbook = XLSX.utils.table_to_book(table, {sheet: "التقرير"});
             XLSX.writeFile(workbook, name + ".xlsx");
         }
 
         function exportPDF(tableId, name) {
+            updateExportFooter();
             const element = document.getElementById(tableId);
             html2pdf().set({
                 margin: 0.5,
@@ -740,6 +766,7 @@
         }
 
         function sharePDF(tableId, name) {
+            updateExportFooter();
             const element = document.getElementById(tableId);
             const opt = { margin: 0.5, filename: name + '.pdf', image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }};
             html2pdf().set(opt).from(element).output('blob').then(function(pdfBlob) {
@@ -760,6 +787,7 @@
         }
 
         async function shareExcel(tableId, name) {
+            updateExportFooter();
             let table = document.getElementById(tableId);
             let workbook = XLSX.utils.table_to_book(table, {sheet: "التقرير"});
             let wbout = XLSX.write(workbook, {bookType:'xlsx', type:'array'});
