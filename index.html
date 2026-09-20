@@ -7,16 +7,50 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        const firebaseConfig = {
+          apiKey: "AIzaSyAb6ftQGEVhO51Bykyc2jvGzNse9NQzJD8",
+          authDomain: "fuel-app-6d3d4.firebaseapp.com",
+          databaseURL: "https://fuel-app-6d3d4-default-rtdb.europe-west1.firebasedatabase.app",
+          projectId: "fuel-app-6d3d4",
+          storageBucket: "fuel-app-6d3d4.firebasestorage.app",
+          messagingSenderId: "1004234378863",
+          appId: "1:1004234378863:web:ada2a63463724d9258c79a",
+          measurementId: "G-R9ZTVJ7XH1"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        window.fbDb = db;
+        window.fbRef = ref;
+        window.fbSet = set;
+        window.fbGet = get;
+        window.fbChild = child;
+        
+        if (typeof window.initCloudSystem === 'function') {
+            window.initCloudSystem();
+        }
+    </script>
+
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f3f4f6; }
         .tab-btn.active { border-bottom: 4px solid #2563eb; color: #2563eb; font-weight: bold; }
         .hidden { display: none !important; }
+        @media print {
+            body { background: white; }
+            no-print { display: none; }
+        }
     </style>
 </head>
 <body class="bg-gray-100 text-gray-800 pb-10">
 
     <header class="bg-blue-600 text-white p-4 shadow-md flex justify-between items-center">
-        <h1 class="text-xl font-bold">إدارة المحروقات</h1>
+        <h1 class="text-xl font-bold">إدارة المحروقات (سحابي)</h1>
         <div id="userInfo" class="hidden text-sm items-center gap-4" style="display: none;">
             <span id="userNameDisplay"></span>
             <button onclick="logout()" class="bg-red-500 hover:bg-red-600 px-3 py-1 rounded font-bold">خروج</button>
@@ -47,7 +81,6 @@
 
         <div class="max-w-2xl mx-auto p-4">
             
-            <!-- شاشة الإدخال -->
             <div id="input-tab" class="hidden" style="display: none;">
                 <div class="bg-white p-6 rounded-lg shadow-md">
                     <h2 id="formTitle" class="text-lg font-semibold mb-4 border-b pb-2">تسجيل بيانات جديدة</h2>
@@ -88,7 +121,6 @@
                 </div>
             </div>
 
-            <!-- شاشة التقارير -->
             <div id="report-tab" class="hidden" style="display: none;">
                 <div class="bg-white p-4 rounded-lg shadow-md mb-4">
                     <h2 class="text-lg font-semibold mb-3 border-b pb-2">فلترة التقرير</h2>
@@ -116,52 +148,55 @@
                     </div>
                 </div>
 
-                <div id="printable-report" class="bg-white p-4 rounded-lg shadow-md mt-4">
-                    <!-- عنوان التقرير وفترته -->
-                    <h2 class="text-center font-bold text-lg mb-2">تقرير كمية المحروقات</h2>
-                    <p id="reportPeriodDisplay" class="text-center text-sm text-gray-600 mb-4 font-semibold"></p>
-                    
-                    <div class="overflow-x-auto mb-6">
-                        <table class="w-full text-sm text-center border-collapse border border-gray-300">
-                            <thead>
-                                <tr class="bg-gray-200">
-                                    <th class="border border-gray-300 p-1">التاريخ</th>
-                                    <th class="border border-gray-300 p-1">الجهة المستفيدة</th>
-                                    <th class="border border-gray-300 p-1">الصنف</th>
-                                    <th class="border border-gray-300 p-1">الكمية</th>
-                                    <th class="border border-gray-300 p-1 admin-only hidden" data-html2canvas-ignore="true">إجراء</th>
-                                </tr>
-                            </thead>
-                            <tbody id="reportTableBody"></tbody>
-                        </table>
+                <!-- تصميم التقرير الاحترافي الجاهز للطباعة -->
+                <div id="printable-report" class="bg-white p-6 rounded-lg shadow-md mt-4 border border-gray-200">
+                    <div class="text-center border-b-2 border-blue-600 pb-4 mb-4">
+                        <h2 class="font-bold text-xl text-blue-900 mb-1">تقرير كمية المحروقات</h2>
+                        <p id="reportPeriodDisplay" class="text-sm text-gray-600 font-semibold"></p>
                     </div>
                     
-                    <h3 class="font-semibold text-sm mb-2 text-blue-800">إجمالي الكمية حسب الصنف</h3>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-sm text-center border-collapse border border-gray-300">
-                            <thead>
-                                <tr class="bg-gray-200">
-                                    <th class="border border-gray-300 p-2 w-1/2">الصنف</th>
-                                    <th class="border border-gray-300 p-2 w-1/2">إجمالي الكمية</th>
-                                </tr>
-                            </thead>
-                            <tbody id="summaryTableBody"></tbody>
-                        </table>
+                    <div class="mb-6">
+                        <h3 class="font-bold text-sm mb-2 text-gray-700">تفاصيل الحركات</h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-xs text-center border-collapse border border-gray-300">
+                                <thead>
+                                    <tr class="bg-blue-50 text-blue-900">
+                                        <th class="border border-gray-300 p-2">التاريخ</th>
+                                        <th class="border border-gray-300 p-2">الجهة المستفيدة</th>
+                                        <th class="border border-gray-300 p-2">الصنف</th>
+                                        <th class="border border-gray-300 p-2">الكمية</th>
+                                        <th class="border border-gray-300 p-2 admin-only hidden" data-html2canvas-ignore="true">إجراء</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="reportTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <h3 class="font-bold text-sm mb-2 text-blue-800">إجمالي الكمية حسب الصنف</h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-xs text-center border-collapse border border-gray-300">
+                                <thead>
+                                    <tr class="bg-gray-100 text-gray-800">
+                                        <th class="border border-gray-300 p-2 w-1/2">الصنف</th>
+                                        <th class="border border-gray-300 p-2 w-1/2">إجمالي الكمية</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="summaryTableBody"></tbody>
+                            </table>
+                        </div>
                     </div>
 
-                    <!-- تذييل التقرير الجديد (اسم المستخدم ووقت التصدير) -->
-                    <div class="mt-8 border-t border-gray-300 pt-4">
-                        <table class="w-full text-xs text-gray-600 font-semibold" id="reportFooterTable">
-                            <tr>
-                                <td class="text-right w-1/2" id="footerUser"></td>
-                                <td class="text-left w-1/2" id="footerTime" dir="ltr"></td>
-                            </tr>
-                        </table>
+                    <div class="mt-8 border-t border-gray-300 pt-4 text-xs text-gray-600">
+                        <div class="flex justify-between items-center">
+                            <span id="footerUser" class="font-bold"></span>
+                            <span id="footerTime" dir="ltr" class="font-bold"></span>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- سجل المحذوفات -->
             <div id="audit-tab" class="hidden" style="display: none;">
                 <div class="bg-white p-4 rounded-lg shadow-md mb-4">
                     <h2 class="text-lg font-semibold mb-3 border-b pb-2 text-red-600">سجل المعاملات المحذوفة والمعدلة</h2>
@@ -181,7 +216,6 @@
                 </div>
             </div>
 
-            <!-- شاشة الإعدادات -->
             <div id="settings-tab" class="hidden" style="display: none;">
                 <div class="bg-white p-4 rounded-lg shadow-md mb-4 border-l-4 border-blue-600">
                     <h2 class="text-lg font-semibold mb-3 border-b pb-2">إدارة المستخدمين (المدير فقط)</h2>
@@ -245,35 +279,77 @@
             return `${year}-${month}-${day}`;
         }
 
-        function initSystem() {
-            let users = JSON.parse(localStorage.getItem('appUsers')) || [];
-            let updated = false;
-
-            if (users.length === 0) {
-                users.push({ id: 'admin', name: 'مدير النظام الافتراضي', pass: 'admin', role: 'admin' });
-                updated = true;
+        async function getCloudData(path) {
+            if (!window.fbDb) return null;
+            try {
+                const snapshot = await window.fbGet(window.fbChild(window.fbRef(window.fbDb), path));
+                return snapshot.exists() ? snapshot.val() : null;
+            } catch (e) {
+                console.error(e);
+                return null;
             }
+        }
 
+        async function saveCloudData(path, data) {
+            if (!window.fbDb) return;
+            try {
+                await window.fbSet(window.fbRef(window.fbDb, path), data);
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        async function syncLocalToCloud() {
+            let users = JSON.parse(localStorage.getItem('appUsers')) || [];
+            let fuelTypes = JSON.parse(localStorage.getItem('fuelTypes')) || [];
+            let beneficiaries = JSON.parse(localStorage.getItem('beneficiaries')) || [];
+            let fuelData = JSON.parse(localStorage.getItem('fuelData')) || [];
+
+            if(users.length === 0) {
+                users.push({ id: 'admin', name: 'مدير النظام الافتراضي', pass: 'admin', role: 'admin' });
+            }
             if (!users.find(u => u.id === '802838904')) {
                 users.push({ id: '802838904', name: 'محمد حسن عبد الله', pass: '802838904', role: 'admin' });
-                updated = true;
+            }
+            if (fuelTypes.length === 0) {
+                fuelTypes = ["الغاز", "سولار تجاري", "سولار مؤسسات", "بنزين تجاري", "بنزين مؤسسات"];
+            }
+            if (beneficiaries.length === 0) {
+                beneficiaries = ["UNOPS"];
             }
 
-            if (updated) {
-                localStorage.setItem('appUsers', JSON.stringify(users));
-            }
+            const cloudUsers = await getCloudData('appUsers');
+            const cloudFuelTypes = await getCloudData('fuelTypes');
+            const cloudBeneficiaries = await getCloudData('beneficiaries');
+            const cloudFuelData = await getCloudData('fuelData');
 
-            if (!localStorage.getItem('fuelTypes')) {
-                localStorage.setItem('fuelTypes', JSON.stringify(["الغاز", "سولار تجاري", "سولار مؤسسات", "بنزين تجاري", "بنزين مؤسسات"]));
-            }
-            if (!localStorage.getItem('beneficiaries')) {
-                localStorage.setItem('beneficiaries', JSON.stringify(["UNOPS"]));
-            }
+            if (!cloudUsers) await saveCloudData('appUsers', users);
+            if (!cloudFuelTypes) await saveCloudData('fuelTypes', fuelTypes);
+            if (!cloudBeneficiaries) await saveCloudData('beneficiaries', beneficiaries);
+            if (!cloudFuelData && fuelData.length > 0) await saveCloudData('fuelData', fuelData);
+        }
+
+        async function loadCloudToLocal() {
+            await syncLocalToCloud();
+            const users = await getCloudData('appUsers');
+            const fuelTypes = await getCloudData('fuelTypes');
+            const beneficiaries = await getCloudData('beneficiaries');
+            const fuelData = await getCloudData('fuelData');
+
+            if(users) localStorage.setItem('appUsers', JSON.stringify(users));
+            if(fuelTypes) localStorage.setItem('fuelTypes', JSON.stringify(fuelTypes));
+            if(beneficiaries) localStorage.setItem('beneficiaries', JSON.stringify(beneficiaries));
+            if(fuelData) localStorage.setItem('fuelData', JSON.stringify(fuelData));
+        }
+
+        window.initCloudSystem = async function() {
+            await loadCloudToLocal();
             
             document.getElementById('dateInput').value = getTodayString();
 
             const savedUser = JSON.parse(localStorage.getItem('loggedInUser'));
             if (savedUser) {
+                const users = JSON.parse(localStorage.getItem('appUsers')) || [];
                 const userInDb = users.find(u => u.id === savedUser.id);
                 if (userInDb) {
                     currentUser = userInDb;
@@ -294,9 +370,10 @@
                     logout();
                 }
             }
-        }
+        };
 
-        function login() {
+        async function login() {
+            await loadCloudToLocal();
             const id = document.getElementById('loginId').value.trim();
             const pass = document.getElementById('loginPass').value;
             const users = JSON.parse(localStorage.getItem('appUsers')) || [];
@@ -405,7 +482,7 @@
             `).join('');
         }
 
-        function addUser() {
+        async function addUser() {
             const id = document.getElementById('newUserId').value.trim();
             const name = document.getElementById('newUserName').value.trim();
             const pass = document.getElementById('newUserPass').value;
@@ -418,6 +495,7 @@
 
             users.push({ id, name, pass, role });
             localStorage.setItem('appUsers', JSON.stringify(users));
+            await saveCloudData('appUsers', users);
             renderUsersTable();
             
             document.getElementById('newUserId').value = '';
@@ -425,16 +503,18 @@
             document.getElementById('newUserPass').value = '';
         }
 
-        function deleteUser(id) {
+        async function deleteUser(id) {
             if(confirm("تأكيد حذف المستخدم؟")) {
                 let users = JSON.parse(localStorage.getItem('appUsers')) || [];
                 users = users.filter(u => u.id !== id);
                 localStorage.setItem('appUsers', JSON.stringify(users));
+                await saveCloudData('appUsers', users);
                 renderUsersTable();
             }
         }
 
-        function switchTab(tabId) {
+        async function switchTab(tabId) {
+            await loadCloudToLocal();
             ['input-tab', 'report-tab', 'audit-tab', 'settings-tab'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) {
@@ -493,20 +573,21 @@
             `).join('');
         }
 
-        function addSetting(key, inputId) {
+        async function addSetting(key, inputId) {
             const val = document.getElementById(inputId).value.trim();
             if(!val) return;
             let items = JSON.parse(localStorage.getItem(key)) || [];
             if(!items.includes(val)) {
                 items.push(val);
                 localStorage.setItem(key, JSON.stringify(items));
+                await saveCloudData(key, items);
                 document.getElementById(inputId).value = '';
                 renderSettingsList(key, key === 'fuelTypes' ? 'fuelTypesList' : 'beneficiariesList');
                 updateSelectOptions();
             }
         }
 
-        function deleteSetting(key, i) {
+        async function deleteSetting(key, i) {
             let items = JSON.parse(localStorage.getItem(key)) || [];
             const itemToDelete = items[i];
             
@@ -527,6 +608,7 @@
             if(confirm("هل أنت متأكد من الحذف؟")) {
                 items.splice(i, 1);
                 localStorage.setItem(key, JSON.stringify(items));
+                await saveCloudData(key, items);
                 renderSettingsList(key, key === 'fuelTypes' ? 'fuelTypesList' : 'beneficiariesList');
                 updateSelectOptions();
             }
@@ -539,8 +621,9 @@
             return false;
         }
 
-        function saveData(e) {
+        async function saveData(e) {
             e.preventDefault();
+            await loadCloudToLocal();
             const editingId = document.getElementById('editingTxnId').value;
             let data = JSON.parse(localStorage.getItem('fuelData')) || [];
             
@@ -577,6 +660,7 @@
             }
 
             localStorage.setItem('fuelData', JSON.stringify(data));
+            await saveCloudData('fuelData', data);
             document.getElementById('quantityInput').value = "";
             document.getElementById('dateInput').value = getTodayString();
         }
@@ -618,8 +702,9 @@
             document.getElementById('cancelEditBtn').style.display = 'none';
         }
 
-        function deleteRecord(txnId) {
+        async function deleteRecord(txnId) {
             if(!promptAdminPassword()) return;
+            await loadCloudToLocal();
 
             let data = JSON.parse(localStorage.getItem('fuelData')) || [];
             const index = data.findIndex(r => r.id === txnId && !r.isDeleted);
@@ -629,18 +714,19 @@
                 data[index].actionBy = currentUser.name;
                 data[index].actionTime = new Date().toLocaleString('ar-EG');
                 localStorage.setItem('fuelData', JSON.stringify(data));
+                await saveCloudData('fuelData', data);
                 alert("تم حذف المعاملة (ستظهر في سجل المحذوفات فقط).");
                 generateReport();
             }
         }
 
-        function generateReport() {
+        async function generateReport() {
+            await loadCloudToLocal();
             const startDate = document.getElementById('startDate').value;
             const endDate = document.getElementById('endDate').value;
             const typeFilter = document.getElementById('typeFilter').value;
             let data = JSON.parse(localStorage.getItem('fuelData')) || [];
 
-            // تحديث نص الفترة
             let periodText = "الفترة: جميع السجلات";
             if (startDate && endDate) {
                 periodText = `الفترة من: ${startDate} إلى: ${endDate}`;
@@ -676,10 +762,10 @@
 
                 reportBody.innerHTML += `
                     <tr>
-                        <td class="border border-gray-300 p-1">${item.date}</td>
-                        <td class="border border-gray-300 p-1">${item.beneficiary}</td>
-                        <td class="border border-gray-300 p-1">${item.type}</td>
-                        <td class="border border-gray-300 p-1" dir="ltr"><span class="font-bold">${item.quantity}</span> <span class="text-xs text-gray-500">${item.unit||''}</span></td>
+                        <td class="border border-gray-300 p-2">${item.date}</td>
+                        <td class="border border-gray-300 p-2">${item.beneficiary}</td>
+                        <td class="border border-gray-300 p-2">${item.type}</td>
+                        <td class="border border-gray-300 p-2" dir="ltr"><span class="font-bold">${item.quantity}</span> <span class="text-xs text-gray-500">${item.unit||''}</span></td>
                         ${actionButtons}
                     </tr>
                 `;
@@ -710,7 +796,8 @@
             }
         }
 
-        function generateAuditReport() {
+        async function generateAuditReport() {
+            await loadCloudToLocal();
             let data = JSON.parse(localStorage.getItem('fuelData')) || [];
             const auditData = data.filter(item => item.isDeleted === true);
             
@@ -737,12 +824,11 @@
             });
         }
 
-        // دالة تحديث التذييل (اسم المستخدم ووقت التصدير)
         function updateExportFooter() {
             if(currentUser) {
                 const now = new Date();
-                document.getElementById('footerUser').innerText = `المستخدم: ${currentUser.name}`;
-                document.getElementById('footerTime').innerText = `تاريخ الاستخراج: ${now.toLocaleString('ar-EG')}`;
+                document.getElementById('footerUser').innerText = `طُبع بواسطة: ${currentUser.name}`;
+                document.getElementById('footerTime').innerText = `تاريخ ووقت الاستخراج: ${now.toLocaleString('ar-EG')}`;
             }
         }
 
@@ -751,6 +837,25 @@
             let table = document.getElementById(tableId);
             let workbook = XLSX.utils.table_to_book(table, {sheet: "التقرير"});
             XLSX.writeFile(workbook, name + ".xlsx");
+        }
+
+        async function shareExcel(tableId, name) {
+            updateExportFooter();
+            let table = document.getElementById(tableId);
+            let workbook = XLSX.utils.table_to_book(table, {sheet: "التقرير"});
+            let wbout = XLSX.write(workbook, {bookType:'xlsx', type:'array'});
+            let blob = new Blob([wbout], {type: "application/octet-stream"});
+            let file = new File([blob], name + ".xlsx", {type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+            
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                try { 
+                    await navigator.share({ files: [file], title: 'تقرير المحروقات', text: 'مرفق التقرير بصيغة Excel' }); 
+                } catch (e) { 
+                    console.error(e); 
+                }
+            } else {
+                XLSX.writeFile(workbook, name + ".xlsx");
+            }
         }
 
         function exportPDF(tableId, name) {
@@ -780,30 +885,10 @@
                         html2pdf().set(opt).from(element).save();
                     });
                 } else {
-                    alert("متصفحك لا يدعم المشاركة المباشرة للملفات. سيتم تنزيل الملف.");
                     html2pdf().set(opt).from(element).save();
                 }
             });
         }
-
-        async function shareExcel(tableId, name) {
-            updateExportFooter();
-            let table = document.getElementById(tableId);
-            let workbook = XLSX.utils.table_to_book(table, {sheet: "التقرير"});
-            let wbout = XLSX.write(workbook, {bookType:'xlsx', type:'array'});
-            let blob = new Blob([wbout], {type: "application/octet-stream"});
-            let file = new File([blob], name + ".xlsx", {type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
-            
-            if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                try { await navigator.share({ files: [file], title: 'تقرير المحروقات', text: 'مرفق التقرير بصيغة Excel' }); } 
-                catch (e) { console.error(e); }
-            } else {
-                alert("متصفحك لا يدعم المشاركة المباشرة للملفات. سيتم تنزيل الملف.");
-                XLSX.writeFile(workbook, name + ".xlsx");
-            }
-        }
-
-        initSystem();
     </script>
 </body>
 </html>
