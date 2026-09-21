@@ -97,7 +97,7 @@
                             <select id="beneficiaryInput" required class="w-full border p-2 rounded focus:ring focus:ring-blue-200"></select>
                         </div>
 
-                        <div class="flex gap-3 mb-6">
+                        <div class="flex gap-3 mb-4">
                             <div class="w-1/2">
                                 <label class="block text-sm font-medium mb-1">نوع الوقود / الصنف</label>
                                 <select id="typeInput" onchange="updateUnitBasedOnType()" required class="w-full border p-2 rounded focus:ring focus:ring-blue-200"></select>
@@ -113,6 +113,11 @@
                                     </select>
                                 </div>
                             </div>
+                        </div>
+
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium mb-1">عدد الشاحنات</label>
+                            <input type="number" id="trucksInput" placeholder="عدد الشاحنات" required min="1" class="w-full border p-2 rounded focus:ring focus:ring-blue-200">
                         </div>
 
                         <button type="submit" id="submitBtn" class="w-full bg-blue-600 text-white font-bold py-3 rounded hover:bg-blue-700 transition">حفظ البيانات</button>
@@ -164,6 +169,7 @@
                                         <th class="border border-gray-300 p-2">التاريخ</th>
                                         <th class="border border-gray-300 p-2">الجهة المستفيدة</th>
                                         <th class="border border-gray-300 p-2">الصنف</th>
+                                        <th class="border border-gray-300 p-2">عدد الشاحنات</th>
                                         <th class="border border-gray-300 p-2">الكمية</th>
                                         <th class="border border-gray-300 p-2 admin-only hidden" data-html2canvas-ignore="true">إجراء</th>
                                     </tr>
@@ -174,13 +180,14 @@
                     </div>
                     
                     <div class="mb-6">
-                        <h3 class="font-bold text-sm mb-2 text-blue-800">إجمالي الكمية حسب الصنف</h3>
+                        <h3 class="font-bold text-sm mb-2 text-blue-800">إجمالي الكمية وعدد الشاحنات حسب الصنف</h3>
                         <div class="overflow-x-auto">
                             <table class="w-full text-xs text-center border-collapse border border-gray-300">
                                 <thead>
                                     <tr class="bg-gray-100 text-gray-800">
-                                        <th class="border border-gray-300 p-2 w-1/2">الصنف</th>
-                                        <th class="border border-gray-300 p-2 w-1/2">إجمالي الكمية</th>
+                                        <th class="border border-gray-300 p-2 w-1/3">الصنف</th>
+                                        <th class="border border-gray-300 p-2 w-1/3">إجمالي الشاحنات</th>
+                                        <th class="border border-gray-300 p-2 w-1/3">إجمالي الكمية</th>
                                     </tr>
                                 </thead>
                                 <tbody id="summaryTableBody"></tbody>
@@ -346,6 +353,7 @@
             await loadCloudToLocal();
             
             document.getElementById('dateInput').value = getTodayString();
+            document.getElementById('trucksInput').value = "1";
 
             const savedUser = JSON.parse(localStorage.getItem('loggedInUser'));
             if (savedUser) {
@@ -539,6 +547,7 @@
 
             if(tabId === 'input-tab' && !document.getElementById('editingTxnId').value) {
                 document.getElementById('dateInput').value = getTodayString();
+                document.getElementById('trucksInput').value = "1";
             }
 
             if(tabId === 'report-tab') generateReport();
@@ -627,6 +636,8 @@
             const editingId = document.getElementById('editingTxnId').value;
             let data = JSON.parse(localStorage.getItem('fuelData')) || [];
             
+            const trucksVal = parseInt(document.getElementById('trucksInput').value) || 1;
+
             if (editingId) {
                 if(!promptAdminPassword()) return;
                 
@@ -638,8 +649,8 @@
                     data[oldRecordIndex].status = 'edited';
                     data[oldRecordIndex].actionBy = currentUser.name;
                     data[oldRecordIndex].actionTime = new Date().toLocaleString('ar-EG');
-                    data[oldRecordIndex].oldData = `${oldRecord.date} | ${oldRecord.beneficiary} | ${oldRecord.type} | ${oldRecord.quantity} ${oldRecord.unit}`;
-                    data[oldRecordIndex].newData = `${document.getElementById('dateInput').value} | ${document.getElementById('beneficiaryInput').value} | ${document.getElementById('typeInput').value} | ${document.getElementById('quantityInput').value} ${document.getElementById('unitInput').value}`;
+                    data[oldRecordIndex].oldData = `${oldRecord.date} | ${oldRecord.beneficiary} | ${oldRecord.type} | ${oldRecord.trucks || 1} شاحنات | ${oldRecord.quantity} ${oldRecord.unit}`;
+                    data[oldRecordIndex].newData = `${document.getElementById('dateInput').value} | ${document.getElementById('beneficiaryInput').value} | ${document.getElementById('typeInput').value} | ${trucksVal} شاحنات | ${document.getElementById('quantityInput').value} ${document.getElementById('unitInput').value}`;
                     
                     const newRecord = {
                         id: Date.now().toString(),
@@ -647,6 +658,7 @@
                         date: document.getElementById('dateInput').value,
                         beneficiary: document.getElementById('beneficiaryInput').value,
                         type: document.getElementById('typeInput').value,
+                        trucks: trucksVal,
                         quantity: parseFloat(document.getElementById('quantityInput').value),
                         unit: document.getElementById('unitInput').value,
                         addedBy: currentUser.name,
@@ -667,6 +679,7 @@
                     date: document.getElementById('dateInput').value,
                     beneficiary: document.getElementById('beneficiaryInput').value,
                     type: document.getElementById('typeInput').value,
+                    trucks: trucksVal,
                     quantity: parseFloat(document.getElementById('quantityInput').value),
                     unit: document.getElementById('unitInput').value,
                     addedBy: currentUser.name,
@@ -680,6 +693,7 @@
             localStorage.setItem('fuelData', JSON.stringify(data));
             await saveCloudData('fuelData', data);
             document.getElementById('quantityInput').value = "";
+            document.getElementById('trucksInput').value = "1";
             document.getElementById('dateInput').value = getTodayString();
         }
 
@@ -692,6 +706,7 @@
             document.getElementById('dateInput').value = record.date;
             document.getElementById('beneficiaryInput').value = record.beneficiary;
             document.getElementById('typeInput').value = record.type;
+            document.getElementById('trucksInput').value = record.trucks || 1;
             document.getElementById('quantityInput').value = record.quantity;
             document.getElementById('unitInput').value = record.unit;
             
@@ -710,6 +725,7 @@
             document.getElementById('editingTxnId').value = "";
             document.getElementById('fuelForm').reset();
             document.getElementById('dateInput').value = getTodayString();
+            document.getElementById('trucksInput').value = "1";
             
             document.getElementById('formTitle').innerText = "تسجيل بيانات جديدة";
             document.getElementById('formTitle').classList.replace('text-red-600', 'text-gray-800');
@@ -784,36 +800,39 @@
                         <td class="border border-gray-300 p-2">${item.date}</td>
                         <td class="border border-gray-300 p-2">${item.beneficiary}</td>
                         <td class="border border-gray-300 p-2">${item.type}</td>
+                        <td class="border border-gray-300 p-2 font-semibold">${item.trucks || 1}</td>
                         <td class="border border-gray-300 p-2" dir="ltr"><span class="font-bold">${item.quantity}</span> <span class="text-xs text-gray-500">${item.unit||''}</span></td>
                         ${actionButtons}
                     </tr>
                 `;
             });
 
-            // عرض الأصناف المُعبأة فقط (التي لها حركات فعلية ضمن الفلتر)
+            // تجميع الكميات وعدد الشاحنات حسب الصنف للمعاملات المفعلة والمفلترة
             const totals = {};
             filteredData.forEach(item => {
                 if (totals[item.type] === undefined) {
-                    totals[item.type] = 0;
+                    totals[item.type] = { qty: 0, trucks: 0 };
                 }
-                totals[item.type] += item.quantity;
+                totals[item.type].qty += item.quantity;
+                totals[item.type].trucks += (parseInt(item.trucks) || 1);
             });
 
             const summaryBody = document.getElementById('summaryTableBody');
             summaryBody.innerHTML = '';
             
-            for (const [type, total] of Object.entries(totals)) {
+            for (const [type, dataObj] of Object.entries(totals)) {
                 let displayUnit = (type.includes("غاز") || type.includes("الغاز")) ? "طن" : "لتر";
                 summaryBody.innerHTML += `
                     <tr>
                         <td class="border border-gray-300 p-2 font-bold">${type}</td>
-                        <td class="border border-gray-300 p-2 text-blue-700 font-bold" dir="ltr">${total} <span class="text-gray-500 text-sm">${displayUnit}</span></td>
+                        <td class="border border-gray-300 p-2 font-bold text-gray-700">${dataObj.trucks} شاحنة</td>
+                        <td class="border border-gray-300 p-2 text-blue-700 font-bold" dir="ltr">${dataObj.qty} <span class="text-gray-500 text-sm">${displayUnit}</span></td>
                     </tr>
                 `;
             }
 
             if (Object.keys(totals).length === 0) {
-                summaryBody.innerHTML = `<tr><td colspan="2" class="border border-gray-300 p-2 text-gray-500">لا توجد حركات مسجلة لهذه الفترة</td></tr>`;
+                summaryBody.innerHTML = `<tr><td colspan="3" class="border border-gray-300 p-2 text-gray-500">لا توجد حركات مسجلة لهذه الفترة</td></tr>`;
             }
             
             updateExportFooter();
@@ -834,7 +853,7 @@
                 let detailsHtml = '';
                 if (item.status === 'deleted') {
                     detailsHtml = `
-                        <strong>الجهة:</strong> ${item.beneficiary} | <strong>الصنف:</strong> ${item.type} | <strong>الكمية:</strong> ${item.quantity} ${item.unit} <br>
+                        <strong>الجهة:</strong> ${item.beneficiary} | <strong>الصنف:</strong> ${item.type} | <strong>الشاحنات:</strong> ${item.trucks || 1} | <strong>الكمية:</strong> ${item.quantity} ${item.unit} <br>
                         <span class="text-gray-500">التاريخ الأصلي: ${item.date} | سجلت بواسطة: ${item.addedBy}</span>
                     `;
                 } else {
@@ -895,7 +914,7 @@
                 [periodText],
                 [""],
                 ["تفاصيل الحركات"],
-                ["رقم المعاملة", "التاريخ", "الجهة المستفيدة", "الصنف", "الكمية"]
+                ["رقم المعاملة", "التاريخ", "الجهة المستفيدة", "الصنف", "عدد الشاحنات", "الكمية"]
             ];
 
             let activeData = JSON.parse(localStorage.getItem('fuelData')) || [];
@@ -912,22 +931,23 @@
             });
 
             activeData.forEach(item => {
-                wsData.push([item.serialNo || '', item.date, item.beneficiary, item.type, `${item.quantity} ${item.unit || ''}`]);
+                wsData.push([item.serialNo || '', item.date, item.beneficiary, item.type, item.trucks || 1, `${item.quantity} ${item.unit || ''}`]);
             });
 
             wsData.push([""]);
-            wsData.push(["إجمالي الكمية حسب الصنف"]);
-            wsData.push(["الصنف", "إجمالي الكمية"]);
+            wsData.push(["إجمالي الكمية وعدد الشاحنات حسب الصنف"]);
+            wsData.push(["الصنف", "إجمالي الشاحنات", "إجمالي الكمية"]);
 
             const totals = {};
             activeData.forEach(item => {
-                if (totals[item.type] === undefined) totals[item.type] = 0;
-                totals[item.type] += item.quantity;
+                if (totals[item.type] === undefined) totals[item.type] = { qty: 0, trucks: 0 };
+                totals[item.type].qty += item.quantity;
+                totals[item.type].trucks += (parseInt(item.trucks) || 1);
             });
 
-            for (const [type, total] of Object.entries(totals)) {
+            for (const [type, dataObj] of Object.entries(totals)) {
                 let displayUnit = (type.includes("غاز") || type.includes("الغاز")) ? "طن" : "لتر";
-                wsData.push([type, `${total} ${displayUnit}`]);
+                wsData.push([type, `${dataObj.trucks} شاحنة`, `${dataObj.qty} ${displayUnit}`]);
             }
 
             wsData.push([""]);
@@ -951,7 +971,7 @@
                 [periodText],
                 [""],
                 ["تفاصيل الحركات"],
-                ["رقم المعاملة", "التاريخ", "الجهة المستفيدة", "الصنف", "الكمية"]
+                ["رقم المعاملة", "التاريخ", "الجهة المستفيدة", "الصنف", "عدد الشاحنات", "الكمية"]
             ];
 
             let activeData = JSON.parse(localStorage.getItem('fuelData')) || [];
@@ -968,22 +988,23 @@
             });
 
             activeData.forEach(item => {
-                wsData.push([item.serialNo || '', item.date, item.beneficiary, item.type, `${item.quantity} ${item.unit || ''}`]);
+                wsData.push([item.serialNo || '', item.date, item.beneficiary, item.type, item.trucks || 1, `${item.quantity} ${item.unit || ''}`]);
             });
 
             wsData.push([""]);
-            wsData.push(["إجمالي الكمية حسب الصنف"]);
-            wsData.push(["الصنف", "إجمالي الكمية"]);
+            wsData.push(["إجمالي الكمية وعدد الشاحنات حسب الصنف"]);
+            wsData.push(["الصنف", "إجمالي الشاحنات", "إجمالي الكمية"]);
 
             const totals = {};
             activeData.forEach(item => {
-                if (totals[item.type] === undefined) totals[item.type] = 0;
-                totals[item.type] += item.quantity;
+                if (totals[item.type] === undefined) totals[item.type] = { qty: 0, trucks: 0 };
+                totals[item.type].qty += item.quantity;
+                totals[item.type].trucks += (parseInt(item.trucks) || 1);
             });
 
-            for (const [type, total] of Object.entries(totals)) {
+            for (const [type, dataObj] of Object.entries(totals)) {
                 let displayUnit = (type.includes("غاز") || type.includes("الغاز")) ? "طن" : "لتر";
-                wsData.push([type, `${total} ${displayUnit}`]);
+                wsData.push([type, `${dataObj.trucks} شاحنة`, `${dataObj.qty} ${displayUnit}`]);
             }
 
             wsData.push([""]);
@@ -1008,7 +1029,6 @@
             }
         }
 
-        // تم ضبط مقياس العرض والصفحة ليظهر التقرير بالحجم الكامل وبشكل مرتب وواضح تماماً
         function exportPDF(tableId) {
             updateExportFooter();
             const element = document.getElementById(tableId);
