@@ -141,10 +141,10 @@
                     <button onclick="generateReport()" class="w-full bg-gray-800 text-white font-bold py-2 rounded mb-2 hover:bg-gray-900">تحديث التقرير</button>
                     
                     <div class="grid grid-cols-2 gap-2 mt-4">
-                        <button onclick="exportExcel('printable-report', 'التقرير_الرئيسي')" class="bg-green-600 text-white text-sm font-bold py-2 rounded">تنزيل Excel</button>
-                        <button onclick="shareExcel('printable-report', 'التقرير_الرئيسي')" class="bg-green-500 text-white text-sm font-bold py-2 rounded">مشاركة Excel</button>
-                        <button onclick="exportPDF('printable-report', 'التقرير_الرئيسي')" class="bg-red-600 text-white text-sm font-bold py-2 rounded">تنزيل PDF</button>
-                        <button onclick="sharePDF('printable-report', 'التقرير_الرئيسي')" class="bg-red-500 text-white text-sm font-bold py-2 rounded">مشاركة PDF</button>
+                        <button onclick="exportExcel('printable-report')" class="bg-green-600 text-white text-sm font-bold py-2 rounded">تنزيل Excel</button>
+                        <button onclick="shareExcel('printable-report')" class="bg-green-500 text-white text-sm font-bold py-2 rounded">مشاركة Excel</button>
+                        <button onclick="exportPDF('printable-report')" class="bg-red-600 text-white text-sm font-bold py-2 rounded">تنزيل PDF</button>
+                        <button onclick="sharePDF('printable-report')" class="bg-red-500 text-white text-sm font-bold py-2 rounded">مشاركة PDF</button>
                     </div>
                 </div>
 
@@ -634,30 +634,13 @@
                 if(oldRecordIndex > -1) {
                     const oldRecord = data[oldRecordIndex];
                     
-                    // النسخة القديمة توضع في السجل كمعاملة معدلة
-                    const editAuditRecord = {
-                        id: oldRecord.id,
-                        serialNo: oldRecord.serialNo,
-                        date: oldRecord.date,
-                        beneficiary: oldRecord.beneficiary,
-                        type: oldRecord.type,
-                        quantity: oldRecord.quantity,
-                        unit: oldRecord.unit,
-                        addedBy: oldRecord.addedBy,
-                        isDeleted: true,
-                        status: 'edited',
-                        actionBy: currentUser.name,
-                        actionTime: new Date().toLocaleString('ar-EG'),
-                        oldData: `${oldRecord.date} | ${oldRecord.beneficiary} | ${oldRecord.type} | ${oldRecord.quantity} ${oldRecord.unit}`,
-                        newData: `${document.getElementById('dateInput').value} | ${document.getElementById('beneficiaryInput').value} | ${document.getElementById('typeInput').value} | ${document.getElementById('quantityInput').value} ${document.getElementById('unitInput').value}`
-                    };
-
                     data[oldRecordIndex].isDeleted = true;
                     data[oldRecordIndex].status = 'edited';
                     data[oldRecordIndex].actionBy = currentUser.name;
                     data[oldRecordIndex].actionTime = new Date().toLocaleString('ar-EG');
+                    data[oldRecordIndex].oldData = `${oldRecord.date} | ${oldRecord.beneficiary} | ${oldRecord.type} | ${oldRecord.quantity} ${oldRecord.unit}`;
+                    data[oldRecordIndex].newData = `${document.getElementById('dateInput').value} | ${document.getElementById('beneficiaryInput').value} | ${document.getElementById('typeInput').value} | ${document.getElementById('quantityInput').value} ${document.getElementById('unitInput').value}`;
                     
-                    // المعاملة الجديدة بنفس الرقم التسلسلي الفريد
                     const newRecord = {
                         id: Date.now().toString(),
                         serialNo: oldRecord.serialNo,
@@ -675,7 +658,6 @@
                 alert('تم اعتماد التعديل بنجاح');
                 cancelEdit();
             } else {
-                // حساب الرقم التسلسلي التصاعدي الفريد بناءً على عدد المعاملات الفعالة السابقة
                 const activeTransactions = data.filter(r => !r.isDeleted);
                 const nextSerial = activeTransactions.length + 1;
 
@@ -881,11 +863,16 @@
             }
         }
 
-        function exportExcel(tableId, name) {
+        function getReportFileName() {
+            return `تقرير_كميات_${getTodayString()}`;
+        }
+
+        function exportExcel(tableId) {
             updateExportFooter();
             const periodText = document.getElementById('reportPeriodDisplay').innerText;
             const userName = currentUser ? currentUser.name : 'غير معروف';
             const nowTime = new Date().toLocaleString('ar-EG');
+            const fileName = getReportFileName();
 
             let wsData = [
                 ["تقرير كمية المحروقات"],
@@ -939,14 +926,15 @@
             const wb = XLSX.utils.book_new();
             const ws = XLSX.utils.aoa_to_sheet(wsData);
             XLSX.utils.book_append_sheet(wb, ws, "التقرير");
-            XLSX.writeFile(wb, name + ".xlsx");
+            XLSX.writeFile(wb, fileName + ".xlsx");
         }
 
-        async function shareExcel(tableId, name) {
+        async function shareExcel(tableId) {
             updateExportFooter();
             const periodText = document.getElementById('reportPeriodDisplay').innerText;
             const userName = currentUser ? currentUser.name : 'غير معروف';
             const nowTime = new Date().toLocaleString('ar-EG');
+            const fileName = getReportFileName();
 
             let wsData = [
                 ["تقرير كمية المحروقات"],
@@ -1003,7 +991,7 @@
 
             let wbout = XLSX.write(wb, {bookType:'xlsx', type:'array'});
             let blob = new Blob([wbout], {type: "application/octet-stream"});
-            let file = new File([blob], name + ".xlsx", {type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+            let file = new File([blob], fileName + ".xlsx", {type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
             
             if (navigator.canShare && navigator.canShare({ files: [file] })) {
                 try { 
@@ -1012,16 +1000,17 @@
                     console.error(e); 
                 }
             } else {
-                XLSX.writeFile(wb, name + ".xlsx");
+                XLSX.writeFile(wb, fileName + ".xlsx");
             }
         }
 
-        function exportPDF(tableId, name) {
+        function exportPDF(tableId) {
             updateExportFooter();
             const element = document.getElementById(tableId);
+            const fileName = getReportFileName();
             const opt = {
                 margin: [0.3, 0.3, 0.3, 0.3],
-                filename: name + '.pdf',
+                filename: fileName + '.pdf',
                 image: { type: 'jpeg', quality: 0.98 },
                 html2canvas: { scale: 2, useCORS: true },
                 jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' },
@@ -1031,7 +1020,7 @@
                 const blobUrl = URL.createObjectURL(pdfBlob);
                 const a = document.createElement('a');
                 a.href = blobUrl;
-                a.download = name + '.pdf';
+                a.download = fileName + '.pdf';
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
@@ -1039,19 +1028,20 @@
             });
         }
 
-        function sharePDF(tableId, name) {
+        function sharePDF(tableId) {
             updateExportFooter();
             const element = document.getElementById(tableId);
+            const fileName = getReportFileName();
             const opt = { 
                 margin: [0.3, 0.3, 0.3, 0.3], 
-                filename: name + '.pdf', 
+                filename: fileName + '.pdf', 
                 image: { type: 'jpeg', quality: 0.98 }, 
                 html2canvas: { scale: 2, useCORS: true }, 
                 jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' },
                 pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
             };
             html2pdf().set(opt).from(element).output('blob').then(function(pdfBlob) {
-                const file = new File([pdfBlob], name + ".pdf", { type: "application/pdf" });
+                const file = new File([pdfBlob], fileName + ".pdf", { type: "application/pdf" });
                 if (navigator.canShare && navigator.canShare({ files: [file] })) {
                     navigator.share({
                         files: [file],
@@ -1061,7 +1051,7 @@
                         const blobUrl = URL.createObjectURL(pdfBlob);
                         const a = document.createElement('a');
                         a.href = blobUrl;
-                        a.download = name + '.pdf';
+                        a.download = fileName + '.pdf';
                         document.body.appendChild(a);
                         a.click();
                         document.body.removeChild(a);
@@ -1071,7 +1061,7 @@
                     const blobUrl = URL.createObjectURL(pdfBlob);
                     const a = document.createElement('a');
                     a.href = blobUrl;
-                    a.download = name + '.pdf';
+                    a.download = fileName + '.pdf';
                     document.body.appendChild(a);
                     a.click();
                     document.body.removeChild(a);
