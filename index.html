@@ -864,7 +864,21 @@
         }
 
         function getReportFileName() {
-            return `تقرير_كميات_${getTodayString()}`;
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            let periodStr = "";
+            
+            if (startDate && endDate) {
+                periodStr = (startDate === endDate) ? startDate : startDate + "_إلى_" + endDate;
+            } else if (startDate) {
+                periodStr = "من_" + startDate;
+            } else if (endDate) {
+                periodStr = "حتى_" + endDate;
+            } else {
+                periodStr = getTodayString();
+            }
+            
+            return "تقرير_كميات_" + periodStr;
         }
 
         function exportExcel(tableId) {
