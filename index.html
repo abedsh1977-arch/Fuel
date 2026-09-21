@@ -790,36 +790,30 @@
                 `;
             });
 
-            // عرض جميع أنواع الوقود المسجلة في النظام في الجدول التجميعي مع حساب كمياتها الفعلية (أو صفر إن لم تكن موجودة في الفترة المفلترة)
-            const allFuelTypes = JSON.parse(localStorage.getItem('fuelTypes')) || ["الغاز", "سولار تجاري", "سولار مؤسسات", "بنزين تجاري", "بنزين مؤسسات"];
+            // تجميع وتعبئة الأصناف التي تحتوي على حركات فعلية فقط (استبعاد الصفرية تماماً)
             const totals = {};
-            
-            // تهيئة جميع الأصناف بصفر
-            allFuelTypes.forEach(t => totals[t] = 0);
-
-            // تجميع الكميات للحركات المطابقة للفلتر
             filteredData.forEach(item => {
-                if (totals[item.type] !== undefined) {
-                    totals[item.type] += item.quantity;
-                } else {
-                    totals[item.type] = item.quantity;
+                if (totals[item.type] === undefined) {
+                    totals[item.type] = 0;
                 }
+                totals[item.type] += item.quantity;
             });
 
             const summaryBody = document.getElementById('summaryTableBody');
             summaryBody.innerHTML = '';
             
-            // إذا كان المستخدم قد اختار فلتر نوع معين، نعرض ذلك النوع فقط، وإذا اختار الكل نعرض كافة الأصناف
             for (const [type, total] of Object.entries(totals)) {
-                if (typeFilter === 'الكل' || typeFilter === type) {
-                    let displayUnit = (type.includes("غاز") || type.includes("الغاز")) ? "طن" : "لتر";
-                    summaryBody.innerHTML += `
-                        <tr>
-                            <td class="border border-gray-300 p-2 font-bold">${type}</td>
-                            <td class="border border-gray-300 p-2 text-blue-700 font-bold" dir="ltr">${total} <span class="text-gray-500 text-sm">${displayUnit}</span></td>
-                        </tr>
-                    `;
-                }
+                let displayUnit = (type.includes("غاز") || type.includes("الغاز")) ? "طن" : "لتر";
+                summaryBody.innerHTML += `
+                    <tr>
+                        <td class="border border-gray-300 p-2 font-bold">${type}</td>
+                        <td class="border border-gray-300 p-2 text-blue-700 font-bold" dir="ltr">${total} <span class="text-gray-500 text-sm">${displayUnit}</span></td>
+                    </tr>
+                `;
+            }
+
+            if (Object.keys(totals).length === 0) {
+                summaryBody.innerHTML = `<tr><td colspan="2" class="border border-gray-300 p-2 text-gray-500">لا توجد حركات مسجلة لهذه الفترة</td></tr>`;
             }
             
             updateExportFooter();
@@ -925,20 +919,15 @@
             wsData.push(["إجمالي الكمية حسب الصنف"]);
             wsData.push(["الصنف", "إجمالي الكمية"]);
 
-            const allFuelTypes = JSON.parse(localStorage.getItem('fuelTypes')) || ["الغاز", "سولار تجاري", "سولار مؤسسات", "بنزين تجاري", "بنزين مؤسسات"];
             const totals = {};
-            allFuelTypes.forEach(t => totals[t] = 0);
-            
             activeData.forEach(item => {
-                if (totals[item.type] !== undefined) totals[item.type] += item.quantity;
-                else totals[item.type] = item.quantity;
+                if (totals[item.type] === undefined) totals[item.type] = 0;
+                totals[item.type] += item.quantity;
             });
 
             for (const [type, total] of Object.entries(totals)) {
-                if (typeFilter === 'الكل' || typeFilter === type) {
-                    let displayUnit = (type.includes("غاز") || type.includes("الغاز")) ? "طن" : "لتر";
-                    wsData.push([type, `${total} ${displayUnit}`]);
-                }
+                let displayUnit = (type.includes("غاز") || type.includes("الغاز")) ? "طن" : "لتر";
+                wsData.push([type, `${total} ${displayUnit}`]);
             }
 
             wsData.push([""]);
@@ -986,20 +975,15 @@
             wsData.push(["إجمالي الكمية حسب الصنف"]);
             wsData.push(["الصنف", "إجمالي الكمية"]);
 
-            const allFuelTypes = JSON.parse(localStorage.getItem('fuelTypes')) || ["الغاز", "سولار تجاري", "سولار مؤسسات", "بنزين تجاري", "بنزين مؤسسات"];
             const totals = {};
-            allFuelTypes.forEach(t => totals[t] = 0);
-            
             activeData.forEach(item => {
-                if (totals[item.type] !== undefined) totals[item.type] += item.quantity;
-                else totals[item.type] = item.quantity;
+                if (totals[item.type] === undefined) totals[item.type] = 0;
+                totals[item.type] += item.quantity;
             });
 
             for (const [type, total] of Object.entries(totals)) {
-                if (typeFilter === 'الكل' || typeFilter === type) {
-                    let displayUnit = (type.includes("غاز") || type.includes("الغاز")) ? "طن" : "لتر";
-                    wsData.push([type, `${total} ${displayUnit}`]);
-                }
+                let displayUnit = (type.includes("غاز") || type.includes("الغاز")) ? "طن" : "لتر";
+                wsData.push([type, `${total} ${displayUnit}`]);
             }
 
             wsData.push([""]);
@@ -1024,7 +1008,7 @@
             }
         }
 
-        // تم ضبط إعدادات الـ PDF لمنع القطع والتأكد من ظهور كافة العناصر والأصناف والأسفل بالكامل
+        // تم ضبط مقياس الرسم والهوامش ليتم التقاط الجدول كاملاً بدون أي قص أو اختفاء
         function exportPDF(tableId) {
             updateExportFooter();
             const element = document.getElementById(tableId);
@@ -1033,9 +1017,9 @@
                 margin: [0.2, 0.2, 0.2, 0.2],
                 filename: fileName + '.pdf',
                 image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+                html2canvas: { scale: 2, useCORS: true, letterRendering: true, windowWidth: 800 },
                 jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' },
-                pagebreak: { mode: ['css', 'legacy'] }
+                pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
             };
             html2pdf().set(opt).from(element).outputPdf('blob').then(function(pdfBlob) {
                 const blobUrl = URL.createObjectURL(pdfBlob);
@@ -1057,9 +1041,9 @@
                 margin: [0.2, 0.2, 0.2, 0.2], 
                 filename: fileName + '.pdf', 
                 image: { type: 'jpeg', quality: 0.98 }, 
-                html2canvas: { scale: 2, useCORS: true, letterRendering: true }, 
+                html2canvas: { scale: 2, useCORS: true, letterRendering: true, windowWidth: 800 }, 
                 jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' },
-                pagebreak: { mode: ['css', 'legacy'] }
+                pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
             };
             html2pdf().set(opt).from(element).output('blob').then(function(pdfBlob) {
                 const file = new File([pdfBlob], fileName + ".pdf", { type: "application/pdf" });
