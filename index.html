@@ -42,15 +42,16 @@
         .tab-btn.active { border-bottom: 4px solid #2563eb; color: #2563eb; font-weight: bold; }
         .hidden { display: none !important; }
         
-        /* إعدادات الطباعة المتقدمة للتقارير الطويلة وتكرار الترويسة والترقيم */
+        /* إضافات لتصويب المسافات ومنع تلاصق الكلمات في العرض والطباعة */
+        th, td { padding: 8px 12px !important; }
+        
         @media print {
             body { background: white; }
             no-print { display: none; }
             table { page-break-inside: auto; }
             tr { page-break-inside: avoid; page-break-after: auto; }
-            thead { display: table-header-group; } /* تكرار ترويسة الجدول في كل صفحة */
+            thead { display: table-header-group; }
             tfoot { display: table-footer-group; }
-            .page-break { page-break-before: always; }
         }
 
         @page {
@@ -58,7 +59,7 @@
             margin: 15mm;
             @bottom-right {
                 content: "صفحة " counter(page) " من " counter(pages);
-                font-size: 10px;
+                font-size: 11px;
                 font-family: sans-serif;
             }
         }
@@ -172,8 +173,8 @@
 
                 <div id="printable-report" class="bg-white p-6 rounded-lg shadow-md mt-4 border border-gray-200">
                     <div class="text-center border-b-2 border-blue-600 pb-4 mb-4">
-                        <h2 class="font-bold text-xl text-blue-900 mb-1">تقرير كمية المحروقات</h2>
-                        <p id="reportPeriodDisplay" class="text-sm text-gray-600 font-semibold"></p>
+                        <h2 class="font-bold text-xl text-blue-900 mb-2">تقرير كمية المحروقات</h2>
+                        <p id="reportPeriodDisplay" class="text-sm text-gray-700 font-semibold"></p>
                     </div>
                     
                     <div class="mb-6">
@@ -196,8 +197,7 @@
                         </div>
                     </div>
                     
-                    <!-- جدول إجمالي الكميات مرتب ليظهر في نهاية الصفحات / الصفحة الأخيرة -->
-                    <div class="mb-6 page-break-inside-avoid">
+                    <div class="mb-6">
                         <h3 class="font-bold text-sm mb-2 text-blue-800">إجمالي الكمية وعدد الشاحنات حسب الصنف</h3>
                         <div class="overflow-x-auto">
                             <table class="w-full text-xs text-center border-collapse border border-gray-300">
@@ -781,7 +781,7 @@
 
             let periodText = "الفترة: جميع السجلات";
             if (startDate && endDate) {
-                periodText = `الفترة من: ${startDate} إلى: ${endDate}`;
+                periodText = `الفترة من: ${startDate}  إلى: ${endDate}`;
             } else if (startDate) {
                 periodText = `الفترة من: ${startDate}`;
             } else if (endDate) {
@@ -805,7 +805,7 @@
                 let actionButtons = '';
                 if(currentUser && currentUser.role === 'admin') {
                     actionButtons = `
-                        <td class="border border-gray-300 p-1 admin-only" data-html2canvas-ignore="true">
+                        <td class="border border-gray-300 p-2 admin-only" data-html2canvas-ignore="true">
                             <button onclick="initiateEdit('${item.id}')" class="text-blue-600 mx-1">✏️</button>
                             <button onclick="deleteRecord('${item.id}')" class="text-red-600 mx-1">❌</button>
                         </td>
@@ -818,7 +818,7 @@
                         <td class="border border-gray-300 p-2">${item.date}</td>
                         <td class="border border-gray-300 p-2">${item.beneficiary}</td>
                         <td class="border border-gray-300 p-2">${item.type}</td>
-                        <td class="border border-gray-300 p-2 font-semibold">${item.trucks || 1}</td>
+                        <td class="border border-gray-300 p-2 font-semibold">${item.trucks || 1} شاحنة</td>
                         <td class="border border-gray-300 p-2" dir="ltr"><span class="font-bold">${item.quantity}</span> <span class="text-xs text-gray-500">${item.unit||''}</span></td>
                         ${actionButtons}
                     </tr>
@@ -871,8 +871,8 @@
                 let detailsHtml = '';
                 if (item.status === 'deleted') {
                     detailsHtml = `
-                        <strong>الجهة:</strong> ${item.beneficiary} | <strong>الصنف:</strong> ${item.type} | <strong>الشاحنات:</strong> ${item.trucks || 1} | <strong>الكمية:</strong> ${item.quantity} ${item.unit} <br>
-                        <span class="text-gray-500">التاريخ الأصلي: ${item.date} | سجلت بواسطة: ${item.addedBy}</span>
+                        <strong>الجهة:</strong> ${item.beneficiary} &nbsp;|&nbsp; <strong>الصنف:</strong> ${item.type} &nbsp;|&nbsp; <strong>الشاحنات:</strong> ${item.trucks || 1} &nbsp;|&nbsp; <strong>الكمية:</strong> ${item.quantity} ${item.unit} <br>
+                        <span class="text-gray-500">التاريخ الأصلي: ${item.date} &nbsp;|&nbsp; سجلت بواسطة: ${item.addedBy}</span>
                     `;
                 } else {
                     detailsHtml = `
@@ -949,7 +949,7 @@
             });
 
             activeData.forEach(item => {
-                wsData.push([item.serialNo || '', item.date, item.beneficiary, item.type, item.trucks || 1, `${item.quantity} ${item.unit || ''}`]);
+                wsData.push([item.serialNo || '', item.date, item.beneficiary, item.type, (item.trucks || 1) + " شاحنة", `${item.quantity} ${item.unit || ''}`]);
             });
 
             wsData.push([""]);
@@ -1006,7 +1006,7 @@
             });
 
             activeData.forEach(item => {
-                wsData.push([item.serialNo || '', item.date, item.beneficiary, item.type, item.trucks || 1, `${item.quantity} ${item.unit || ''}`]);
+                wsData.push([item.serialNo || '', item.date, item.beneficiary, item.type, (item.trucks || 1) + " شاحنة", `${item.quantity} ${item.unit || ''}`]);
             });
 
             wsData.push([""]);
@@ -1047,18 +1047,28 @@
             }
         }
 
-        // إعدادات الـ PDF المتوافقة تماماً مع التقارير الطويلة والصفحات المتعددة وتكرار الترويسة والترقيم
+        // إعدادات الـ PDF مع إضافة دالة ترقيم الصفحات التلقائية (صفحة X من Y) وتصحيح المسافات
         function exportPDF(tableId) {
             updateExportFooter();
             const element = document.getElementById(tableId);
             const fileName = getReportFileName();
             const opt = {
-                margin: [0.4, 0.4, 0.5, 0.4],
+                margin: [0.4, 0.4, 0.6, 0.4],
                 filename: fileName + '.pdf',
                 image: { type: 'jpeg', quality: 0.98 },
                 html2canvas: { scale: 2, useCORS: true, letterRendering: true },
                 jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' },
-                pagebreak: { mode: ['css', 'legacy'] }
+                pagebreak: { mode: ['css', 'legacy'] },
+                callback: function (pdf) {
+                    const totalPages = pdf.internal.getNumberOfPages();
+                    for (let i = 1; i <= totalPages; i++) {
+                        pdf.setPage(i);
+                        pdf.setFont("helvetica", "normal");
+                        pdf.setFontSize(10);
+                        pdf.setTextColor(100, 100, 100);
+                        pdf.text(`Page ${i} of ${totalPages}`, pdf.internal.pageSize.getWidth() - 1.0, pdf.internal.pageSize.getHeight() - 0.3, { align: 'right' });
+                    }
+                }
             };
             html2pdf().set(opt).from(element).outputPdf('blob').then(function(pdfBlob) {
                 const blobUrl = URL.createObjectURL(pdfBlob);
@@ -1077,12 +1087,22 @@
             const element = document.getElementById(tableId);
             const fileName = getReportFileName();
             const opt = { 
-                margin: [0.4, 0.4, 0.5, 0.4], 
+                margin: [0.4, 0.4, 0.6, 0.4], 
                 filename: fileName + '.pdf', 
                 image: { type: 'jpeg', quality: 0.98 }, 
                 html2canvas: { scale: 2, useCORS: true, letterRendering: true }, 
                 jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' },
-                pagebreak: { mode: ['css', 'legacy'] }
+                pagebreak: { mode: ['css', 'legacy'] },
+                callback: function (pdf) {
+                    const totalPages = pdf.internal.getNumberOfPages();
+                    for (let i = 1; i <= totalPages; i++) {
+                        pdf.setPage(i);
+                        pdf.setFont("helvetica", "normal");
+                        pdf.setFontSize(10);
+                        pdf.setTextColor(100, 100, 100);
+                        pdf.text(`Page ${i} of ${totalPages}`, pdf.internal.pageSize.getWidth() - 1.0, pdf.internal.pageSize.getHeight() - 0.3, { align: 'right' });
+                    }
+                }
             };
             html2pdf().set(opt).from(element).output('blob').then(function(pdfBlob) {
                 const file = new File([pdfBlob], fileName + ".pdf", { type: "application/pdf" });
