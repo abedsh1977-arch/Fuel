@@ -790,7 +790,7 @@
                 `;
             });
 
-            // تجميع وتعبئة الأصناف التي تحتوي على حركات فعلية فقط (استبعاد الصفرية تماماً)
+            // عرض الأصناف المُعبأة فقط (التي لها حركات فعلية ضمن الفلتر)
             const totals = {};
             filteredData.forEach(item => {
                 if (totals[item.type] === undefined) {
@@ -1008,18 +1008,18 @@
             }
         }
 
-        // تم ضبط مقياس الرسم والهوامش ليتم التقاط الجدول كاملاً بدون أي قص أو اختفاء
+        // تم ضبط مقياس العرض والصفحة ليظهر التقرير بالحجم الكامل وبشكل مرتب وواضح تماماً
         function exportPDF(tableId) {
             updateExportFooter();
             const element = document.getElementById(tableId);
             const fileName = getReportFileName();
             const opt = {
-                margin: [0.2, 0.2, 0.2, 0.2],
+                margin: [0.3, 0.3, 0.3, 0.3],
                 filename: fileName + '.pdf',
                 image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: true, letterRendering: true, windowWidth: 800 },
+                html2canvas: { scale: 2, useCORS: true, letterRendering: true },
                 jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' },
-                pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+                pagebreak: { mode: ['css', 'legacy'] }
             };
             html2pdf().set(opt).from(element).outputPdf('blob').then(function(pdfBlob) {
                 const blobUrl = URL.createObjectURL(pdfBlob);
@@ -1038,12 +1038,12 @@
             const element = document.getElementById(tableId);
             const fileName = getReportFileName();
             const opt = { 
-                margin: [0.2, 0.2, 0.2, 0.2], 
+                margin: [0.3, 0.3, 0.3, 0.3], 
                 filename: fileName + '.pdf', 
                 image: { type: 'jpeg', quality: 0.98 }, 
-                html2canvas: { scale: 2, useCORS: true, letterRendering: true, windowWidth: 800 }, 
+                html2canvas: { scale: 2, useCORS: true, letterRendering: true }, 
                 jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' },
-                pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+                pagebreak: { mode: ['css', 'legacy'] }
             };
             html2pdf().set(opt).from(element).output('blob').then(function(pdfBlob) {
                 const file = new File([pdfBlob], fileName + ".pdf", { type: "application/pdf" });
