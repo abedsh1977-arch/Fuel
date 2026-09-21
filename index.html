@@ -160,6 +160,7 @@
                             <table class="w-full text-xs text-center border-collapse border border-gray-300">
                                 <thead>
                                     <tr class="bg-blue-50 text-blue-900">
+                                        <th class="border border-gray-300 p-2">رقم المعاملة</th>
                                         <th class="border border-gray-300 p-2">التاريخ</th>
                                         <th class="border border-gray-300 p-2">الجهة المستفيدة</th>
                                         <th class="border border-gray-300 p-2">الصنف</th>
@@ -203,10 +204,10 @@
                         <table class="w-full text-xs text-center border-collapse border border-gray-300">
                             <thead>
                                 <tr class="bg-gray-200">
-                                    <th class="border p-1">الحالة</th>
-                                    <th class="border p-1">التاريخ الأصلي</th>
-                                    <th class="border p-1">البيانات</th>
-                                    <th class="border p-1">المستخدم / وقت الإجراء</th>
+                                    <th class="border p-1">نوع الإجراء</th>
+                                    <th class="border p-1">رقم المعاملة</th>
+                                    <th class="border p-1">تفاصيل المعاملة (قبل وبعد)</th>
+                                    <th class="border p-1">بواسطة / الوقت</th>
                                 </tr>
                             </thead>
                             <tbody id="auditTableBody"></tbody>
@@ -626,34 +627,70 @@
             const editingId = document.getElementById('editingTxnId').value;
             let data = JSON.parse(localStorage.getItem('fuelData')) || [];
             
-            const newRecord = {
-                id: editingId ? editingId : Date.now().toString(),
-                date: document.getElementById('dateInput').value,
-                beneficiary: document.getElementById('beneficiaryInput').value,
-                type: document.getElementById('typeInput').value,
-                quantity: parseFloat(document.getElementById('quantityInput').value),
-                unit: document.getElementById('unitInput').value,
-                addedBy: currentUser.name,
-                isDeleted: false,
-                status: 'active'
-            };
-
             if (editingId) {
                 if(!promptAdminPassword()) return;
                 
                 const oldRecordIndex = data.findIndex(r => r.id === editingId && r.status === 'active');
                 if(oldRecordIndex > -1) {
+                    const oldRecord = data[oldRecordIndex];
+                    
+                    // النسخة القديمة توضع في السجل كمعاملة معدلة
+                    const editAuditRecord = {
+                        id: oldRecord.id,
+                        serialNo: oldRecord.serialNo,
+                        date: oldRecord.date,
+                        beneficiary: oldRecord.beneficiary,
+                        type: oldRecord.type,
+                        quantity: oldRecord.quantity,
+                        unit: oldRecord.unit,
+                        addedBy: oldRecord.addedBy,
+                        isDeleted: true,
+                        status: 'edited',
+                        actionBy: currentUser.name,
+                        actionTime: new Date().toLocaleString('ar-EG'),
+                        oldData: `${oldRecord.date} | ${oldRecord.beneficiary} | ${oldRecord.type} | ${oldRecord.quantity} ${oldRecord.unit}`,
+                        newData: `${document.getElementById('dateInput').value} | ${document.getElementById('beneficiaryInput').value} | ${document.getElementById('typeInput').value} | ${document.getElementById('quantityInput').value} ${document.getElementById('unitInput').value}`
+                    };
+
                     data[oldRecordIndex].isDeleted = true;
                     data[oldRecordIndex].status = 'edited';
                     data[oldRecordIndex].actionBy = currentUser.name;
                     data[oldRecordIndex].actionTime = new Date().toLocaleString('ar-EG');
                     
-                    newRecord.id = Date.now().toString(); 
+                    // المعاملة الجديدة بنفس الرقم التسلسلي الفريد
+                    const newRecord = {
+                        id: Date.now().toString(),
+                        serialNo: oldRecord.serialNo,
+                        date: document.getElementById('dateInput').value,
+                        beneficiary: document.getElementById('beneficiaryInput').value,
+                        type: document.getElementById('typeInput').value,
+                        quantity: parseFloat(document.getElementById('quantityInput').value),
+                        unit: document.getElementById('unitInput').value,
+                        addedBy: currentUser.name,
+                        isDeleted: false,
+                        status: 'active'
+                    };
                     data.push(newRecord);
                 }
                 alert('تم اعتماد التعديل بنجاح');
                 cancelEdit();
             } else {
+                // حساب الرقم التسلسلي التصاعدي الفريد بناءً على عدد المعاملات الفعالة السابقة
+                const activeTransactions = data.filter(r => !r.isDeleted);
+                const nextSerial = activeTransactions.length + 1;
+
+                const newRecord = {
+                    id: Date.now().toString(),
+                    serialNo: nextSerial,
+                    date: document.getElementById('dateInput').value,
+                    beneficiary: document.getElementById('beneficiaryInput').value,
+                    type: document.getElementById('typeInput').value,
+                    quantity: parseFloat(document.getElementById('quantityInput').value),
+                    unit: document.getElementById('unitInput').value,
+                    addedBy: currentUser.name,
+                    isDeleted: false,
+                    status: 'active'
+                };
                 data.push(newRecord);
                 alert('تم الحفظ بنجاح!');
             }
@@ -676,7 +713,7 @@
             document.getElementById('quantityInput').value = record.quantity;
             document.getElementById('unitInput').value = record.unit;
             
-            document.getElementById('formTitle').innerText = "تعديل المعاملة المختارة";
+            document.getElementById('formTitle').innerText = "تعديل المعاملة رقم: " + (record.serialNo || '-');
             document.getElementById('formTitle').classList.replace('text-gray-800', 'text-red-600');
             document.getElementById('submitBtn').innerText = "تحديث واعتماد التعديل";
             document.getElementById('submitBtn').classList.replace('bg-blue-600', 'bg-red-600');
@@ -714,7 +751,7 @@
                 data[index].actionTime = new Date().toLocaleString('ar-EG');
                 localStorage.setItem('fuelData', JSON.stringify(data));
                 await saveCloudData('fuelData', data);
-                alert("تم حذف المعاملة (ستظهر في سجل المحذوفات فقط).");
+                alert("تم حذف المعاملة (ستظهر في سجل المحذوفات والمعدلات).");
                 generateReport();
             }
         }
@@ -761,6 +798,7 @@
 
                 reportBody.innerHTML += `
                     <tr>
+                        <td class="border border-gray-300 p-2 font-bold text-blue-800">${item.serialNo || '-'}</td>
                         <td class="border border-gray-300 p-2">${item.date}</td>
                         <td class="border border-gray-300 p-2">${item.beneficiary}</td>
                         <td class="border border-gray-300 p-2">${item.type}</td>
@@ -807,17 +845,27 @@
             
             auditData.reverse().forEach(item => {
                 let badgeClass = item.status === 'deleted' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800';
-                let actionText = item.status === 'deleted' ? 'حذف' : 'تعديل (نسخة قديمة)';
+                let actionText = item.status === 'deleted' ? 'حذف نهائي' : 'تعديل معاملة';
+                
+                let detailsHtml = '';
+                if (item.status === 'deleted') {
+                    detailsHtml = `
+                        <strong>الجهة:</strong> ${item.beneficiary} | <strong>الصنف:</strong> ${item.type} | <strong>الكمية:</strong> ${item.quantity} ${item.unit} <br>
+                        <span class="text-gray-500">التاريخ الأصلي: ${item.date} | سجلت بواسطة: ${item.addedBy}</span>
+                    `;
+                } else {
+                    detailsHtml = `
+                        <div class="text-red-700 bg-red-50 p-1 rounded mb-1"><strong>قبل التعديل:</strong> ${item.oldData || 'غير متوفر'}</div>
+                        <div class="text-green-700 bg-green-50 p-1 rounded"><strong>بعد التعديل:</strong> ${item.newData || 'غير متوفر'}</div>
+                    `;
+                }
                 
                 tbody.innerHTML += `
                     <tr>
-                        <td class="border p-1"><span class="px-2 py-1 rounded text-xs font-bold ${badgeClass}">${actionText}</span></td>
-                        <td class="border p-1 text-gray-500">${item.date}</td>
-                        <td class="border p-1 text-right text-xs">
-                            ${item.beneficiary} | ${item.type} | ${item.quantity} ${item.unit} <br>
-                            <span class="text-gray-400">سجلت بواسطة: ${item.addedBy}</span>
-                        </td>
-                        <td class="border p-1 text-xs text-blue-800 font-semibold" dir="ltr">
+                        <td class="border p-2"><span class="px-2 py-1 rounded text-xs font-bold ${badgeClass}">${actionText}</span></td>
+                        <td class="border p-2 font-bold text-blue-900">${item.serialNo || '-'}</td>
+                        <td class="border p-2 text-right text-xs">${detailsHtml}</td>
+                        <td class="border p-2 text-xs text-blue-800 font-semibold" dir="ltr">
                             ${item.actionBy} <br> ${item.actionTime}
                         </td>
                     </tr>
@@ -833,7 +881,6 @@
             }
         }
 
-        // دالة إنشاء ملف Excel منظم واحترافي يشمل الفترة، الحركات، الملخص، والترويس/التذيل بدقة
         function exportExcel(tableId, name) {
             updateExportFooter();
             const periodText = document.getElementById('reportPeriodDisplay').innerText;
@@ -845,7 +892,7 @@
                 [periodText],
                 [""],
                 ["تفاصيل الحركات"],
-                ["التاريخ", "الجهة المستفيدة", "الصنف", "الكمية"]
+                ["رقم المعاملة", "التاريخ", "الجهة المستفيدة", "الصنف", "الكمية"]
             ];
 
             let activeData = JSON.parse(localStorage.getItem('fuelData')) || [];
@@ -862,7 +909,7 @@
             });
 
             activeData.forEach(item => {
-                wsData.push([item.date, item.beneficiary, item.type, `${item.quantity} ${item.unit || ''}`]);
+                wsData.push([item.serialNo || '', item.date, item.beneficiary, item.type, `${item.quantity} ${item.unit || ''}`]);
             });
 
             wsData.push([""]);
@@ -906,7 +953,7 @@
                 [periodText],
                 [""],
                 ["تفاصيل الحركات"],
-                ["التاريخ", "الجهة المستفيدة", "الصنف", "الكمية"]
+                ["رقم المعاملة", "التاريخ", "الجهة المستفيدة", "الصنف", "الكمية"]
             ];
 
             let activeData = JSON.parse(localStorage.getItem('fuelData')) || [];
@@ -923,7 +970,7 @@
             });
 
             activeData.forEach(item => {
-                wsData.push([item.date, item.beneficiary, item.type, `${item.quantity} ${item.unit || ''}`]);
+                wsData.push([item.serialNo || '', item.date, item.beneficiary, item.type, `${item.quantity} ${item.unit || ''}`]);
             });
 
             wsData.push([""]);
@@ -969,7 +1016,6 @@
             }
         }
 
-        // تصدير PDF مع منع قص الصفحات وضبط الهوامش
         function exportPDF(tableId, name) {
             updateExportFooter();
             const element = document.getElementById(tableId);
