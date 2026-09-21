@@ -793,6 +793,8 @@
                     `;
                 }
             }
+            
+            updateExportFooter();
         }
 
         async function generateAuditReport() {
@@ -831,6 +833,7 @@
             }
         }
 
+        // دالة إنشاء ملف Excel منظم واحترافي يشمل الفترة، الحركات، الملخص، والترويس/التذيل بدقة
         function exportExcel(tableId, name) {
             updateExportFooter();
             const periodText = document.getElementById('reportPeriodDisplay').innerText;
@@ -966,7 +969,7 @@
             }
         }
 
-        // تم ضبط إعدادات الـ PDF لتفادي قص الصفحات وضبط الهوامش بدقة
+        // تصدير PDF مع منع قص الصفحات وضبط الهوامش
         function exportPDF(tableId, name) {
             updateExportFooter();
             const element = document.getElementById(tableId);
