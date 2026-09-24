@@ -42,7 +42,6 @@
         .tab-btn.active { border-bottom: 4px solid #2563eb; color: #2563eb; font-weight: bold; }
         .hidden { display: none !important; }
         
-        /* إضافات لتصويب المسافات ومنع تلاصق الكلمات في العرض والطباعة */
         th, td { padding: 8px 12px !important; }
         
         @media print {
@@ -295,6 +294,11 @@
 
     <script>
         let currentUser = null;
+
+        function formatNumber(num) {
+            if (num === undefined || num === null || isNaN(num)) return "0";
+            return Number(num).toLocaleString('en-US');
+        }
 
         function getTodayString() {
             const d = new Date();
@@ -667,8 +671,8 @@
                     data[oldRecordIndex].status = 'edited';
                     data[oldRecordIndex].actionBy = currentUser.name;
                     data[oldRecordIndex].actionTime = new Date().toLocaleString('ar-EG');
-                    data[oldRecordIndex].oldData = `${oldRecord.date} | ${oldRecord.beneficiary} | ${oldRecord.type} | ${oldRecord.trucks || 1} شاحنات | ${oldRecord.quantity} ${oldRecord.unit}`;
-                    data[oldRecordIndex].newData = `${document.getElementById('dateInput').value} | ${document.getElementById('beneficiaryInput').value} | ${document.getElementById('typeInput').value} | ${trucksVal} شاحنات | ${document.getElementById('quantityInput').value} ${document.getElementById('unitInput').value}`;
+                    data[oldRecordIndex].oldData = `${oldRecord.date} | ${oldRecord.beneficiary} | ${oldRecord.type} | ${formatNumber(oldRecord.trucks || 1)} شاحنات | ${formatNumber(oldRecord.quantity)} ${oldRecord.unit}`;
+                    data[oldRecordIndex].newData = `${document.getElementById('dateInput').value} | ${document.getElementById('beneficiaryInput').value} | ${document.getElementById('typeInput').value} | ${formatNumber(trucksVal)} شاحنات | ${formatNumber(document.getElementById('quantityInput').value)} ${document.getElementById('unitInput').value}`;
                     
                     const newRecord = {
                         id: Date.now().toString(),
@@ -818,14 +822,14 @@
                         <td class="border border-gray-300 p-2">${item.date}</td>
                         <td class="border border-gray-300 p-2">${item.beneficiary}</td>
                         <td class="border border-gray-300 p-2">${item.type}</td>
-                        <td class="border border-gray-300 p-2 font-semibold">${item.trucks || 1} شاحنة</td>
-                        <td class="border border-gray-300 p-2" dir="ltr"><span class="font-bold">${item.quantity}</span> <span class="text-xs text-gray-500">${item.unit||''}</span></td>
+                        <td class="border border-gray-300 p-2 font-semibold">${formatNumber(item.trucks || 1)} شاحنة</td>
+                        <td class="border border-gray-300 p-2" dir="ltr"><span class="font-bold">${formatNumber(item.quantity)}</span> <span class="text-xs text-gray-500">${item.unit||''}</span></td>
                         ${actionButtons}
                     </tr>
                 `;
             });
 
-            // تجميع الكميات وعدد الشاحنات حسب الصنف للمعاملات المفعلة والمفلترة
+            // تجميع الكميات وعدد الشاحنات حسب الصنف للمعاملات المفعلة والمفلترة مع تنسيق الأرقام بالفواصل
             const totals = {};
             filteredData.forEach(item => {
                 if (totals[item.type] === undefined) {
@@ -843,8 +847,8 @@
                 summaryBody.innerHTML += `
                     <tr>
                         <td class="border border-gray-300 p-2 font-bold">${type}</td>
-                        <td class="border border-gray-300 p-2 font-bold text-gray-700">${dataObj.trucks} شاحنة</td>
-                        <td class="border border-gray-300 p-2 text-blue-700 font-bold" dir="ltr">${dataObj.qty} <span class="text-gray-500 text-sm">${displayUnit}</span></td>
+                        <td class="border border-gray-300 p-2 font-bold text-gray-700">${formatNumber(dataObj.trucks)} شاحنة</td>
+                        <td class="border border-gray-300 p-2 text-blue-700 font-bold" dir="ltr">${formatNumber(dataObj.qty)} <span class="text-gray-500 text-sm">${displayUnit}</span></td>
                     </tr>
                 `;
             }
@@ -871,7 +875,7 @@
                 let detailsHtml = '';
                 if (item.status === 'deleted') {
                     detailsHtml = `
-                        <strong>الجهة:</strong> ${item.beneficiary} &nbsp;|&nbsp; <strong>الصنف:</strong> ${item.type} &nbsp;|&nbsp; <strong>الشاحنات:</strong> ${item.trucks || 1} &nbsp;|&nbsp; <strong>الكمية:</strong> ${item.quantity} ${item.unit} <br>
+                        <strong>الجهة:</strong> ${item.beneficiary} &nbsp;|&nbsp; <strong>الصنف:</strong> ${item.type} &nbsp;|&nbsp; <strong>الشاحنات:</strong> ${formatNumber(item.trucks || 1)} &nbsp;|&nbsp; <strong>الكمية:</strong> ${formatNumber(item.quantity)} ${item.unit} <br>
                         <span class="text-gray-500">التاريخ الأصلي: ${item.date} &nbsp;|&nbsp; سجلت بواسطة: ${item.addedBy}</span>
                     `;
                 } else {
@@ -949,7 +953,7 @@
             });
 
             activeData.forEach(item => {
-                wsData.push([item.serialNo || '', item.date, item.beneficiary, item.type, (item.trucks || 1) + " شاحنة", `${item.quantity} ${item.unit || ''}`]);
+                wsData.push([item.serialNo || '', item.date, item.beneficiary, item.type, formatNumber(item.trucks || 1) + " شاحنة", `${formatNumber(item.quantity)} ${item.unit || ''}`]);
             });
 
             wsData.push([""]);
@@ -965,7 +969,7 @@
 
             for (const [type, dataObj] of Object.entries(totals)) {
                 let displayUnit = (type.includes("غاز") || type.includes("الغاز")) ? "طن" : "لتر";
-                wsData.push([type, `${dataObj.trucks} شاحنة`, `${dataObj.qty} ${displayUnit}`]);
+                wsData.push([type, `${formatNumber(dataObj.trucks)} شاحنة`, `${formatNumber(dataObj.qty)} ${displayUnit}`]);
             }
 
             wsData.push([""]);
@@ -1006,7 +1010,7 @@
             });
 
             activeData.forEach(item => {
-                wsData.push([item.serialNo || '', item.date, item.beneficiary, item.type, (item.trucks || 1) + " شاحنة", `${item.quantity} ${item.unit || ''}`]);
+                wsData.push([item.serialNo || '', item.date, item.beneficiary, item.type, formatNumber(item.trucks || 1) + " شاحنة", `${formatNumber(item.quantity)} ${item.unit || ''}`]);
             });
 
             wsData.push([""]);
@@ -1022,7 +1026,7 @@
 
             for (const [type, dataObj] of Object.entries(totals)) {
                 let displayUnit = (type.includes("غاز") || type.includes("الغاز")) ? "طن" : "لتر";
-                wsData.push([type, `${dataObj.trucks} شاحنة`, `${dataObj.qty} ${displayUnit}`]);
+                wsData.push([type, `${formatNumber(dataObj.trucks)} شاحنة`, `${formatNumber(dataObj.qty)} ${displayUnit}`]);
             }
 
             wsData.push([""]);
@@ -1047,7 +1051,6 @@
             }
         }
 
-        // إعدادات الـ PDF مع إضافة دالة ترقيم الصفحات التلقائية (صفحة X من Y) وتصحيح المسافات
         function exportPDF(tableId) {
             updateExportFooter();
             const element = document.getElementById(tableId);
