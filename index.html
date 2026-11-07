@@ -783,11 +783,11 @@
             const typeFilter = document.getElementById('typeFilter').value;
             let data = JSON.parse(localStorage.getItem('fuelData')) || [];
 
-            let periodText = "الفترة: جميع السجلات";
+            let periodText = "الفترة: جميع السجلات (بدون قيود)";
             if (startDate && endDate) {
-                periodText = `الفترة من: ${startDate}  إلى: ${endDate}`;
+                periodText = `الفترة من: ${startDate} إلى: ${endDate}`;
             } else if (startDate) {
-                periodText = `الفترة من: ${startDate}`;
+                periodText = `الفترة من: ${startDate} فصاعداً`;
             } else if (endDate) {
                 periodText = `الفترة حتى: ${endDate}`;
             }
@@ -829,7 +829,6 @@
                 `;
             });
 
-            // تجميع الكميات وعدد الشاحنات حسب الصنف للمعاملات المفعلة والمفلترة مع تنسيق الأرقام بالفواصل
             const totals = {};
             filteredData.forEach(item => {
                 if (totals[item.type] === undefined) {
@@ -854,7 +853,7 @@
             }
 
             if (Object.keys(totals).length === 0) {
-                summaryBody.innerHTML = `<tr><td colspan="3" class="border border-gray-300 p-2 text-gray-500">لا توجد حركات مسجلة لهذه الفترة</td></tr>`;
+                summaryBody.innerHTML = `<tr><td colspan="3" class="border border-gray-300 p-2 text-gray-500">لا توجد حركات مسجلة</td></tr>`;
             }
             
             updateExportFooter();
