@@ -1124,6 +1124,7 @@
             localRecords.unshift(entry);
             localStorage.setItem('fuel_records_backup', JSON.stringify(localRecords));
             localStorage.setItem('fuel_last_saved', JSON.stringify(entry));
+            localStorage.removeItem('fuel_form_draft');
 
             if (db) {
                 try { db.collection('shipments').add(entry); } catch(err){}
@@ -1133,10 +1134,14 @@
             }
 
             updateLastEntryBanner();
+            
+            // تفريغ الحقول بالكامل لتكون جاهزة للإدخال التالي دون إظهار تنبيه
+            document.getElementById('category').value = '';
+            document.getElementById('trucksCount').value = '';
             document.getElementById('quantity').value = '';
             document.getElementById('notes').value = '';
             generateNextTxNumber();
-            alert("تم حفظ المعاملة بنجاح!");
+            document.getElementById('beneficiary').focus();
         }
 
         function setQuickPeriod(type, btn) {
@@ -1200,12 +1205,28 @@
             });
 
             if (db) {
+                const cols = ['shipments', 'records', 'entries', 'fuel_records', 'transactions'];
+                for (const col of cols) {
+                    try {
+                        const snap = await db.collection(col).get();
+                        snap.forEach(doc => {
+                            const norm = normalizeRecord(doc.id, doc.data());
+                            if (norm) rawList.push(norm);
+                        });
+                    } catch(e){}
+                }
+            }
+
+            if (rtdb) {
                 try {
-                    const snap = await db.collection('shipments').get();
-                    snap.forEach(doc => {
-                        const norm = normalizeRecord(doc.id, doc.data());
-                        if (norm) rawList.push(norm);
-                    });
+                    const snap = await rtdb.ref('shipments').once('value');
+                    const val = snap.val();
+                    if (val) {
+                        Object.entries(val).forEach(([k, v]) => {
+                            const norm = normalizeRecord(k, v);
+                            if (norm) rawList.push(norm);
+                        });
+                    }
                 } catch(e){}
             }
 
@@ -1321,7 +1342,6 @@
             loadedShipments = loadedShipments.filter(r => r.id !== target.id);
             applyLocalSearch();
             generateNextTxNumber();
-            alert("تم الحذف بنجاح");
         }
 
         function loadAuditLogs() {
