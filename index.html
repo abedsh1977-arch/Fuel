@@ -785,7 +785,7 @@
                         let cleanQty = parseFloat(String(qtyStr).replace(/,/g, '').replace(/[^0-9.]/g, '')) || 0;
                         let unit = String(qtyStr).includes('طن') ? 'طن' : 'لتر';
 
-                        // التحقق الدقيق لمنع تكرار المعاملة بناءً على التاريخ والجهة والكمية والصنف
+                        // الفحص الدقيق لمنع تكرار المعاملة بناءً على التاريخ والجهة والكمية والصنف
                         let isDuplicate = existingData.some(item => 
                             item.date === String(date) && 
                             item.beneficiary === String(beneficiary) && 
