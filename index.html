@@ -212,7 +212,19 @@
                 <div class="bg-white p-4 md:p-5 rounded-2xl shadow-md mb-4 border border-slate-100 no-print">
                     <h2 class="text-base font-bold mb-3 border-b pb-2 text-slate-800">فلترة التقرير</h2>
                     
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-2.5 mb-3">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5 mb-2.5">
+                        <!-- فلتر اختيار أكثر من جهة مستفيدة (Multi-select) -->
+                        <div class="relative">
+                            <label class="block text-xs font-bold text-slate-600 mb-1">الجهة المستفيدة (متعدد)</label>
+                            <button type="button" onclick="toggleBenfMultiSelect(event)" id="benfMultiSelectBtn" class="w-full border border-slate-300 p-2.5 rounded-xl text-xs bg-slate-50 text-right flex justify-between items-center font-semibold">
+                                <span id="benfMultiSelectLabel" class="truncate">الكل</span>
+                                <span class="text-slate-400 text-[10px]">▼</span>
+                            </button>
+                            <div id="benfMultiSelectDropdown" class="hidden absolute z-40 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-52 overflow-y-auto p-2 text-xs">
+                                <!-- يتم تعبئة الجهات المستفيدة هنا برمجياً -->
+                            </div>
+                        </div>
+
                         <!-- فلتر اختيار أكثر من صنف (Multi-select) -->
                         <div class="relative">
                             <label class="block text-xs font-bold text-slate-600 mb-1">نوع الوقود (متعدد)</label>
@@ -224,7 +236,9 @@
                                 <!-- يتم تعبئة الأصناف هنا برمجياً -->
                             </div>
                         </div>
+                    </div>
 
+                    <div class="grid grid-cols-2 gap-2.5 mb-3">
                         <div>
                             <label class="block text-xs font-bold text-slate-600 mb-1">من تاريخ</label>
                             <input type="date" id="startDate" class="w-full border border-slate-300 p-2 rounded-xl text-xs bg-slate-50">
@@ -685,21 +699,34 @@
             }
         }
 
-        // إدارة القائمة المنسدلة متعددة الاختيارات للأصناف
+        // --- إدارة القوائم المنسدلة متعددة الاختيارات (للأصناف والجهات المستفيدة) ---
         function toggleMultiSelect(e) {
             e.stopPropagation();
-            const dropdown = document.getElementById('multiSelectDropdown');
-            dropdown.classList.toggle('hidden');
+            document.getElementById('benfMultiSelectDropdown').classList.add('hidden');
+            document.getElementById('multiSelectDropdown').classList.toggle('hidden');
+        }
+
+        function toggleBenfMultiSelect(e) {
+            e.stopPropagation();
+            document.getElementById('multiSelectDropdown').classList.add('hidden');
+            document.getElementById('benfMultiSelectDropdown').classList.toggle('hidden');
         }
 
         document.addEventListener('click', function(e) {
-            const dropdown = document.getElementById('multiSelectDropdown');
-            const btn = document.getElementById('multiSelectBtn');
-            if (dropdown && !dropdown.contains(e.target) && !btn.contains(e.target)) {
-                dropdown.classList.add('hidden');
+            const typeDropdown = document.getElementById('multiSelectDropdown');
+            const typeBtn = document.getElementById('multiSelectBtn');
+            if (typeDropdown && !typeDropdown.contains(e.target) && !typeBtn.contains(e.target)) {
+                typeDropdown.classList.add('hidden');
+            }
+
+            const benfDropdown = document.getElementById('benfMultiSelectDropdown');
+            const benfBtn = document.getElementById('benfMultiSelectBtn');
+            if (benfDropdown && !benfDropdown.contains(e.target) && !benfBtn.contains(e.target)) {
+                benfDropdown.classList.add('hidden');
             }
         });
 
+        // دوال فلتر الأصناف المتعدد
         function onAllTypesToggle(checkbox) {
             const itemCheckboxes = document.querySelectorAll('.fuel-type-cb');
             itemCheckboxes.forEach(cb => cb.checked = checkbox.checked);
@@ -734,6 +761,41 @@
             return selected.length === 0 ? null : selected;
         }
 
+        // دوال فلتر الجهات المستفيدة المتعدد
+        function onAllBenfsToggle(checkbox) {
+            const itemCheckboxes = document.querySelectorAll('.benf-item-cb');
+            itemCheckboxes.forEach(cb => cb.checked = checkbox.checked);
+            updateBenfMultiSelectLabel();
+        }
+
+        function onBenfItemToggle() {
+            const allCb = document.getElementById('cb-all-benfs');
+            const itemCheckboxes = Array.from(document.querySelectorAll('.benf-item-cb'));
+            const allChecked = itemCheckboxes.every(cb => cb.checked);
+            if (allCb) allCb.checked = allChecked;
+            updateBenfMultiSelectLabel();
+        }
+
+        function updateBenfMultiSelectLabel() {
+            const itemCheckboxes = Array.from(document.querySelectorAll('.benf-item-cb'));
+            const selected = itemCheckboxes.filter(cb => cb.checked).map(cb => cb.value);
+            const label = document.getElementById('benfMultiSelectLabel');
+            
+            if (selected.length === 0 || selected.length === itemCheckboxes.length) {
+                label.innerText = 'الكل';
+            } else {
+                label.innerText = selected.join(' ، ');
+            }
+        }
+
+        function getSelectedBeneficiaries() {
+            const allCb = document.getElementById('cb-all-benfs');
+            const itemCheckboxes = Array.from(document.querySelectorAll('.benf-item-cb'));
+            if (!allCb || allCb.checked) return null; // null يعني الكل
+            const selected = itemCheckboxes.filter(cb => cb.checked).map(cb => cb.value);
+            return selected.length === 0 ? null : selected;
+        }
+
         function updateSelectOptions() {
             let types = JSON.parse(localStorage.getItem('fuelTypes')) || [];
             let benfs = JSON.parse(localStorage.getItem('beneficiaries')) || [];
@@ -759,6 +821,23 @@
                     </label>
                 `).join('');
                 updateMultiSelectLabel();
+            }
+
+            // بناء قائمة الاختيار المتعدد للجهات المستفيدة
+            const benfDropdown = document.getElementById('benfMultiSelectDropdown');
+            if (benfDropdown) {
+                benfDropdown.innerHTML = `
+                    <label class="flex items-center gap-2 p-2 hover:bg-blue-50 rounded-lg cursor-pointer font-bold border-b border-slate-100 mb-1">
+                        <input type="checkbox" id="cb-all-benfs" checked onchange="onAllBenfsToggle(this)" class="w-4 h-4 accent-blue-600 rounded">
+                        <span>الكل</span>
+                    </label>
+                ` + benfs.map(b => `
+                    <label class="flex items-center gap-2 p-2 hover:bg-slate-50 rounded-lg cursor-pointer">
+                        <input type="checkbox" value="${b}" checked onchange="onBenfItemToggle()" class="benf-item-cb w-4 h-4 accent-blue-600 rounded">
+                        <span>${b}</span>
+                    </label>
+                `).join('');
+                updateBenfMultiSelectLabel();
             }
             
             updateUnitBasedOnType();
@@ -1038,16 +1117,18 @@
             const startDate = document.getElementById('startDate').value;
             const endDate = document.getElementById('endDate').value;
             const selectedTypes = getSelectedFuelTypes();
+            const selectedBenfs = getSelectedBeneficiaries();
             let data = JSON.parse(localStorage.getItem('fuelData')) || [];
 
             const activeData = data.filter(item => !item.isDeleted);
 
             return activeData.filter(item => {
-                let passDate = true, passType = true;
+                let passDate = true, passType = true, passBenf = true;
                 if (startDate) passDate = passDate && (item.date >= startDate);
                 if (endDate) passDate = passDate && (item.date <= endDate);
                 if (selectedTypes !== null) passType = selectedTypes.includes(item.type);
-                return passDate && passType;
+                if (selectedBenfs !== null) passBenf = selectedBenfs.includes(item.beneficiary);
+                return passDate && passType && passBenf;
             });
         }
 
@@ -1372,10 +1453,8 @@
                 margin: [0.4, 0.4, 0.6, 0.4],
                 filename: fileName + '.pdf',
                 image: { type: 'jpeg', quality: 0.98 },
-                // إيقاف letterRendering لأنه يدمج المسافات في الخطوط العربية
                 html2canvas: { scale: 2, useCORS: true, letterRendering: false, scrollY: 0 },
                 jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' },
-                // تفعيل avoid-all لمنع قص أي سطر (tr) بين صفحتين نهائياً
                 pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
             };
         }
