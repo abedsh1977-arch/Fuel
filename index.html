@@ -160,7 +160,7 @@
                             <input type="date" id="endDate" class="w-full border p-2 rounded text-xs">
                         </div>
                     </div>
-                    <button onclick="generateReport()" class="w-full bg-gray-800 text-white font-bold py-2 rounded mb-2 hover:bg-gray-900">تحديث التقرير</button>
+                    <button onclick="generateReport()" class="w-full bg-gray-800 text-white font-bold py-2 rounded mb-2 hover:bg-gray-900">تحديث التقرير (عرض الكل)</button>
                     
                     <div class="grid grid-cols-2 gap-2 mt-4">
                         <button onclick="exportExcel('printable-report')" class="bg-green-600 text-white text-sm font-bold py-2 rounded">تنزيل Excel</button>
@@ -332,7 +332,6 @@
             let users = JSON.parse(localStorage.getItem('appUsers')) || [];
             let fuelTypes = JSON.parse(localStorage.getItem('fuelTypes')) || [];
             let beneficiaries = JSON.parse(localStorage.getItem('beneficiaries')) || [];
-            let fuelData = JSON.parse(localStorage.getItem('fuelData')) || [];
 
             if(users.length === 0) {
                 users.push({ id: 'admin', name: 'مدير النظام الافتراضي', pass: 'admin', role: 'admin' });
@@ -350,25 +349,46 @@
             const cloudUsers = await getCloudData('appUsers');
             const cloudFuelTypes = await getCloudData('fuelTypes');
             const cloudBeneficiaries = await getCloudData('beneficiaries');
-            const cloudFuelData = await getCloudData('fuelData');
 
             if (!cloudUsers) await saveCloudData('appUsers', users);
             if (!cloudFuelTypes) await saveCloudData('fuelTypes', fuelTypes);
             if (!cloudBeneficiaries) await saveCloudData('beneficiaries', beneficiaries);
-            if (!cloudFuelData && fuelData.length > 0) await saveCloudData('fuelData', fuelData);
         }
 
         async function loadCloudToLocal() {
             await syncLocalToCloud();
-            const users = await getCloudData('appUsers');
-            const fuelTypes = await getCloudData('fuelTypes');
-            const beneficiaries = await getCloudData('beneficiaries');
-            const fuelData = await getCloudData('fuelData');
+            
+            let localFuelData = JSON.parse(localStorage.getItem('fuelData')) || [];
+            let cloudFuelData = await getCloudData('fuelData') || [];
 
-            if(users) localStorage.setItem('appUsers', JSON.stringify(users));
-            if(fuelTypes) localStorage.setItem('fuelTypes', JSON.stringify(fuelTypes));
-            if(beneficiaries) localStorage.setItem('beneficiaries', JSON.stringify(beneficiaries));
-            if(fuelData) localStorage.setItem('fuelData', JSON.stringify(fuelData));
+            if (cloudFuelData && !Array.isArray(cloudFuelData)) {
+                cloudFuelData = Object.values(cloudFuelData);
+            }
+
+            // دمج ذكي وآمن للبيانات المحلية والبيانات السحابية عبر معرف المعاملة لضمان عدم ضياع أي سجل حديث
+            const mergedMap = new Map();
+            localFuelData.forEach(item => mergedMap.set(item.id, item));
+            if (Array.isArray(cloudFuelData)) {
+                cloudFuelData.forEach(item => mergedMap.set(item.id, item));
+            }
+
+            const finalFuelData = Array.from(mergedMap.values());
+
+            localStorage.setItem('fuelData', JSON.stringify(finalFuelData));
+            if (finalFuelData.length > 0) {
+                await saveCloudData('fuelData', finalFuelData);
+            }
+
+            // تحديث قوائم النظام
+            ['appUsers', 'fuelTypes', 'beneficiaries'].forEach(async (key) => {
+                let localVal = JSON.parse(localStorage.getItem(key)) || [];
+                let cloudVal = await getCloudData(key) || [];
+                if (cloudVal && !Array.isArray(cloudVal)) cloudVal = Object.values(cloudVal);
+                
+                const merged = [...new Set([...localVal, ...(Array.isArray(cloudVal) ? cloudVal : [])])];
+                localStorage.setItem(key, JSON.stringify(merged));
+                await saveCloudData(key, merged);
+            });
         }
 
         window.initCloudSystem = async function() {
@@ -783,7 +803,7 @@
             const typeFilter = document.getElementById('typeFilter').value;
             let data = JSON.parse(localStorage.getItem('fuelData')) || [];
 
-            let periodText = "الفترة: جميع السجلات (بدون قيود)";
+            let periodText = "الفترة: جميع السجلات (بدون قيود زمنية)";
             if (startDate && endDate) {
                 periodText = `الفترة من: ${startDate} إلى: ${endDate}`;
             } else if (startDate) {
@@ -799,7 +819,7 @@
                 let passDate = true, passType = true;
                 if (startDate) passDate = passDate && (item.date >= startDate);
                 if (endDate) passDate = passDate && (item.date <= endDate);
-                if (typeFilter !== 'الكل') passType = (item.type === typeFilter);
+                if (typeFilter && typeFilter !== 'الكل') passType = (item.type === typeFilter);
                 return passDate && passType;
             });
 
@@ -947,7 +967,7 @@
                 let passDate = true, passType = true;
                 if (startDate) passDate = passDate && (item.date >= startDate);
                 if (endDate) passDate = passDate && (item.date <= endDate);
-                if (typeFilter !== 'الكل') passType = (item.type === typeFilter);
+                if (typeFilter && typeFilter !== 'الكل') passType = (item.type === typeFilter);
                 return passDate && passType;
             });
 
@@ -1004,7 +1024,7 @@
                 let passDate = true, passType = true;
                 if (startDate) passDate = passDate && (item.date >= startDate);
                 if (endDate) passDate = passDate && (item.date <= endDate);
-                if (typeFilter !== 'الكل') passType = (item.type === typeFilter);
+                if (typeFilter && typeFilter !== 'الكل') passType = (item.type === typeFilter);
                 return passDate && passType;
             });
 
