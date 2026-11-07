@@ -41,7 +41,6 @@
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f3f4f6; }
         .tab-btn.active { border-bottom: 4px solid #2563eb; color: #2563eb; font-weight: bold; }
         .hidden { display: none !important; }
-        
         th, td { padding: 8px 12px !important; }
         
         @media print {
@@ -160,7 +159,7 @@
                             <input type="date" id="endDate" class="w-full border p-2 rounded text-xs">
                         </div>
                     </div>
-                    <button onclick="generateReport()" class="w-full bg-gray-800 text-white font-bold py-2 rounded mb-2 hover:bg-gray-900">تحديث التقرير</button>
+                    <button onclick="generateReport()" class="w-full bg-gray-800 text-white font-bold py-2 rounded mb-2 hover:bg-gray-900">تحديث التقرير (عرض الكل)</button>
                     
                     <div class="grid grid-cols-2 gap-2 mt-4">
                         <button onclick="exportExcel('printable-report')" class="bg-green-600 text-white text-sm font-bold py-2 rounded">تنزيل Excel</button>
@@ -312,7 +311,12 @@
             if (!window.fbDb) return null;
             try {
                 const snapshot = await window.fbGet(window.fbChild(window.fbRef(window.fbDb), path));
-                return snapshot.exists() ? snapshot.val() : null;
+                if (!snapshot.exists()) return null;
+                let val = snapshot.val();
+                if (val && typeof val === 'object' && !Array.isArray(val)) {
+                    val = Object.values(val);
+                }
+                return val;
             } catch (e) {
                 console.error(e);
                 return null;
@@ -332,7 +336,6 @@
             let users = JSON.parse(localStorage.getItem('appUsers')) || [];
             let fuelTypes = JSON.parse(localStorage.getItem('fuelTypes')) || [];
             let beneficiaries = JSON.parse(localStorage.getItem('beneficiaries')) || [];
-            let fuelData = JSON.parse(localStorage.getItem('fuelData')) || [];
 
             if(users.length === 0) {
                 users.push({ id: 'admin', name: 'مدير النظام الافتراضي', pass: 'admin', role: 'admin' });
@@ -347,28 +350,53 @@
                 beneficiaries = ["UNOPS"];
             }
 
+            // تنظيف التكرار قبل المزامنة
+            users = Array.from(new Map(users.map(u => [u.id, u])).values());
+
             const cloudUsers = await getCloudData('appUsers');
             const cloudFuelTypes = await getCloudData('fuelTypes');
             const cloudBeneficiaries = await getCloudData('beneficiaries');
-            const cloudFuelData = await getCloudData('fuelData');
 
             if (!cloudUsers) await saveCloudData('appUsers', users);
             if (!cloudFuelTypes) await saveCloudData('fuelTypes', fuelTypes);
             if (!cloudBeneficiaries) await saveCloudData('beneficiaries', beneficiaries);
-            if (!cloudFuelData && fuelData.length > 0) await saveCloudData('fuelData', fuelData);
         }
 
         async function loadCloudToLocal() {
             await syncLocalToCloud();
-            const users = await getCloudData('appUsers');
-            const fuelTypes = await getCloudData('fuelTypes');
-            const beneficiaries = await getCloudData('beneficiaries');
-            const fuelData = await getCloudData('fuelData');
+            
+            let localFuelData = JSON.parse(localStorage.getItem('fuelData')) || [];
+            let cloudFuelData = await getCloudData('fuelData') || [];
 
-            if(users) localStorage.setItem('appUsers', JSON.stringify(users));
-            if(fuelTypes) localStorage.setItem('fuelTypes', JSON.stringify(fuelTypes));
-            if(beneficiaries) localStorage.setItem('beneficiaries', JSON.stringify(beneficiaries));
-            if(fuelData) localStorage.setItem('fuelData', JSON.stringify(fuelData));
+            if (cloudFuelData && !Array.isArray(cloudFuelData)) {
+                cloudFuelData = Object.values(cloudFuelData);
+            }
+
+            const mergedMap = new Map();
+            localFuelData.forEach(item => mergedMap.set(item.id, item));
+            if (Array.isArray(cloudFuelData)) {
+                cloudFuelData.forEach(item => mergedMap.set(item.id, item));
+            }
+
+            const finalFuelData = Array.from(mergedMap.values());
+
+            localStorage.setItem('fuelData', JSON.stringify(finalFuelData));
+            if (finalFuelData.length > 0) {
+                await saveCloudData('fuelData', finalFuelData);
+            }
+
+            ['appUsers', 'fuelTypes', 'beneficiaries'].forEach(async (key) => {
+                let localVal = JSON.parse(localStorage.getItem(key)) || [];
+                let cloudVal = await getCloudData(key) || [];
+                if (cloudVal && !Array.isArray(cloudVal)) cloudVal = Object.values(cloudVal);
+                
+                let merged = [...new Set([...localVal, ...(Array.isArray(cloudVal) ? cloudVal : [])])];
+                if(key === 'appUsers') {
+                    merged = Array.from(new Map(merged.map(u => [u.id, u])).values());
+                }
+                localStorage.setItem(key, JSON.stringify(merged));
+                await saveCloudData(key, merged);
+            });
         }
 
         window.initCloudSystem = async function() {
@@ -497,19 +525,25 @@
             }
         }
 
+        // --- دالة عرض جدول المستخدمين مع منع التكرار نهائياً ---
         function renderUsersTable() {
-            const users = JSON.parse(localStorage.getItem('appUsers')) || [];
+            let users = JSON.parse(localStorage.getItem('appUsers')) || [];
+            users = Array.from(new Map(users.map(u => [u.id, u])).values()); // منع تكرار المستخدمين
+            
             const tbody = document.getElementById('usersListTable');
-            tbody.innerHTML = users.map(u => `
-                <tr>
-                    <td class="border p-1">${u.id}</td>
-                    <td class="border p-1">${u.name}</td>
-                    <td class="border p-1">${u.role === 'admin' ? 'مدير' : (u.role === 'entry' ? 'مدخل' : 'مستعرض')}</td>
-                    <td class="border p-1">
-                        ${u.id !== 'admin' && u.id !== currentUser.id ? `<button onclick="deleteUser('${u.id}')" class="text-red-600 font-bold">X</button>` : '-'}
-                    </td>
-                </tr>
-            `).join('');
+            if (tbody) {
+                tbody.innerHTML = ""; // تفريغ الجدول تماماً قبل ملئه
+                tbody.innerHTML = users.map(u => `
+                    <tr>
+                        <td class="border p-1">${u.id}</td>
+                        <td class="border p-1">${u.name}</td>
+                        <td class="border p-1">${u.role === 'admin' ? 'مدير' : (u.role === 'entry' ? 'مدخل' : 'مستعرض')}</td>
+                        <td class="border p-1">
+                            ${u.id !== 'admin' && u.id !== currentUser.id ? `<button onclick="deleteUser('${u.id}')" class="text-red-600 font-bold">X</button>` : '-'}
+                        </td>
+                    </tr>
+                `).join('');
+            }
         }
 
         async function addUser() {
@@ -524,6 +558,7 @@
             if(users.find(u => u.id === id)) return alert('رقم الهوية موجود مسبقاً!');
 
             users.push({ id, name, pass, role });
+            users = Array.from(new Map(users.map(u => [u.id, u])).values());
             localStorage.setItem('appUsers', JSON.stringify(users));
             await saveCloudData('appUsers', users);
             renderUsersTable();
@@ -537,6 +572,7 @@
             if(confirm("تأكيد حذف المستخدم؟")) {
                 let users = JSON.parse(localStorage.getItem('appUsers')) || [];
                 users = users.filter(u => u.id !== id);
+                users = Array.from(new Map(users.map(u => [u.id, u])).values());
                 localStorage.setItem('appUsers', JSON.stringify(users));
                 await saveCloudData('appUsers', users);
                 renderUsersTable();
@@ -577,13 +613,19 @@
             if(tabId === 'settings-tab') {
                 renderSettingsList('fuelTypes', 'fuelTypesList');
                 renderSettingsList('beneficiaries', 'beneficiariesList');
+                if (currentUser && currentUser.role === 'admin') {
+                    renderUsersTable();
+                }
             }
         }
 
         function updateSelectOptions() {
-            const types = JSON.parse(localStorage.getItem('fuelTypes')) || [];
-            const benfs = JSON.parse(localStorage.getItem('beneficiaries')) || [];
+            let types = JSON.parse(localStorage.getItem('fuelTypes')) || [];
+            let benfs = JSON.parse(localStorage.getItem('beneficiaries')) || [];
             
+            types = [...new Set(types)];
+            benfs = [...new Set(benfs)];
+
             document.getElementById('typeInput').innerHTML = types.map(t => `<option value="${t}">${t}</option>`).join('');
             document.getElementById('beneficiaryInput').innerHTML = benfs.map(b => `<option value="${b}">${b}</option>`).join('');
             document.getElementById('typeFilter').innerHTML = `<option value="الكل">الكل</option>` + types.map(t => `<option value="${t}">${t}</option>`).join('');
@@ -597,11 +639,15 @@
         }
 
         function renderSettingsList(key, listId) {
-            const items = JSON.parse(localStorage.getItem(key)) || [];
-            document.getElementById(listId).innerHTML = items.map((item, i) => `
-                <li class="flex justify-between p-2 text-sm"><span>${item}</span>
-                <button onclick="deleteSetting('${key}', ${i})" class="text-red-500 font-bold">X</button></li>
-            `).join('');
+            let items = JSON.parse(localStorage.getItem(key)) || [];
+            items = [...new Set(items)]; // إزالة أي تكرار
+            const listEl = document.getElementById(listId);
+            if (listEl) {
+                listEl.innerHTML = items.map((item, i) => `
+                    <li class="flex justify-between p-2 text-sm"><span>${item}</span>
+                    <button onclick="deleteSetting('${key}', ${i})" class="text-red-500 font-bold">X</button></li>
+                `).join('');
+            }
         }
 
         async function addSetting(key, inputId) {
@@ -610,6 +656,7 @@
             let items = JSON.parse(localStorage.getItem(key)) || [];
             if(!items.includes(val)) {
                 items.push(val);
+                items = [...new Set(items)];
                 localStorage.setItem(key, JSON.stringify(items));
                 await saveCloudData(key, items);
                 document.getElementById(inputId).value = '';
@@ -638,6 +685,7 @@
 
             if(confirm("هل أنت متأكد من الحذف؟")) {
                 items.splice(i, 1);
+                items = [...new Set(items)];
                 localStorage.setItem(key, JSON.stringify(items));
                 await saveCloudData(key, items);
                 renderSettingsList(key, key === 'fuelTypes' ? 'fuelTypesList' : 'beneficiariesList');
@@ -785,7 +833,7 @@
 
             let periodText = "الفترة: جميع السجلات";
             if (startDate && endDate) {
-                periodText = `الفترة من: ${startDate}  إلى: ${endDate}`;
+                periodText = `الفترة من: ${startDate} إلى: ${endDate}`;
             } else if (startDate) {
                 periodText = `الفترة من: ${startDate}`;
             } else if (endDate) {
@@ -829,7 +877,6 @@
                 `;
             });
 
-            // تجميع الكميات وعدد الشاحنات حسب الصنف للمعاملات المفعلة والمفلترة مع تنسيق الأرقام بالفواصل
             const totals = {};
             filteredData.forEach(item => {
                 if (totals[item.type] === undefined) {
@@ -977,6 +1024,7 @@
 
             const wb = XLSX.utils.book_new();
             const ws = XLSX.utils.aoa_to_sheet(wsData);
+            ws['!rtl'] = true;
             XLSX.utils.book_append_sheet(wb, ws, "التقرير");
             XLSX.writeFile(wb, fileName + ".xlsx");
         }
@@ -1034,6 +1082,7 @@
 
             const wb = XLSX.utils.book_new();
             const ws = XLSX.utils.aoa_to_sheet(wsData);
+            ws['!rtl'] = true;
             XLSX.utils.book_append_sheet(wb, ws, "التقرير");
 
             let wbout = XLSX.write(wb, {bookType:'xlsx', type:'array'});
