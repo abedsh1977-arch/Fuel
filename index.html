@@ -99,6 +99,18 @@
         <div class="max-w-2xl mx-auto p-4">
             
             <div id="input-tab" class="hidden" style="display: none;">
+                <div class="bg-white p-6 rounded-lg shadow-md mb-4">
+                    <!-- زر استيراد ملف Excel الجديد عند الإدخال لمنع التكرار -->
+                    <div class="bg-green-50 border border-green-200 p-3 rounded-lg flex items-center justify-between mb-4">
+                        <div>
+                            <span class="text-xs font-bold text-green-900 block">استيراد دفعة بيانات من ملف Excel</span>
+                            <span class="text-[11px] text-gray-600">يتم فحص البيانات وعدم تسجيل أي سطر مكرر</span>
+                        </div>
+                        <input type="file" id="excelFileImporter" accept=".xlsx, .xls" class="hidden" onchange="importExcelFile(event)">
+                        <button type="button" onclick="document.getElementById('excelFileImporter').click()" class="bg-green-600 hover:bg-green-700 text-white text-xs font-bold px-3 py-2 rounded shadow">رفع ملف Excel</button>
+                    </div>
+                </div>
+
                 <div class="bg-white p-6 rounded-lg shadow-md">
                     <h2 id="formTitle" class="text-lg font-semibold mb-4 border-b pb-2">تسجيل بيانات جديدة</h2>
                     <form id="fuelForm" onsubmit="saveData(event)">
@@ -160,7 +172,7 @@
                             <input type="date" id="endDate" class="w-full border p-2 rounded text-xs">
                         </div>
                     </div>
-                    <button onclick="generateReport()" class="w-full bg-gray-800 text-white font-bold py-2 rounded mb-2 hover:bg-gray-900">تحديث التقرير</button>
+                    <button onclick="generateReport()" class="w-full bg-gray-800 text-white font-bold py-2 rounded mb-2 hover:bg-gray-900">تحديث التقرير (عرض الكل)</button>
                     
                     <div class="grid grid-cols-2 gap-2 mt-4">
                         <button onclick="exportExcel('printable-report')" class="bg-green-600 text-white text-sm font-bold py-2 rounded">تنزيل Excel</button>
@@ -312,7 +324,12 @@
             if (!window.fbDb) return null;
             try {
                 const snapshot = await window.fbGet(window.fbChild(window.fbRef(window.fbDb), path));
-                return snapshot.exists() ? snapshot.val() : null;
+                if (!snapshot.exists()) return null;
+                let val = snapshot.val();
+                if (val && typeof val === 'object' && !Array.isArray(val)) {
+                    val = Object.values(val);
+                }
+                return val;
             } catch (e) {
                 console.error(e);
                 return null;
@@ -332,7 +349,6 @@
             let users = JSON.parse(localStorage.getItem('appUsers')) || [];
             let fuelTypes = JSON.parse(localStorage.getItem('fuelTypes')) || [];
             let beneficiaries = JSON.parse(localStorage.getItem('beneficiaries')) || [];
-            let fuelData = JSON.parse(localStorage.getItem('fuelData')) || [];
 
             if(users.length === 0) {
                 users.push({ id: 'admin', name: 'مدير النظام الافتراضي', pass: 'admin', role: 'admin' });
@@ -350,25 +366,44 @@
             const cloudUsers = await getCloudData('appUsers');
             const cloudFuelTypes = await getCloudData('fuelTypes');
             const cloudBeneficiaries = await getCloudData('beneficiaries');
-            const cloudFuelData = await getCloudData('fuelData');
 
             if (!cloudUsers) await saveCloudData('appUsers', users);
             if (!cloudFuelTypes) await saveCloudData('fuelTypes', fuelTypes);
             if (!cloudBeneficiaries) await saveCloudData('beneficiaries', beneficiaries);
-            if (!cloudFuelData && fuelData.length > 0) await saveCloudData('fuelData', fuelData);
         }
 
         async function loadCloudToLocal() {
             await syncLocalToCloud();
-            const users = await getCloudData('appUsers');
-            const fuelTypes = await getCloudData('fuelTypes');
-            const beneficiaries = await getCloudData('beneficiaries');
-            const fuelData = await getCloudData('fuelData');
+            
+            let localFuelData = JSON.parse(localStorage.getItem('fuelData')) || [];
+            let cloudFuelData = await getCloudData('fuelData') || [];
 
-            if(users) localStorage.setItem('appUsers', JSON.stringify(users));
-            if(fuelTypes) localStorage.setItem('fuelTypes', JSON.stringify(fuelTypes));
-            if(beneficiaries) localStorage.setItem('beneficiaries', JSON.stringify(beneficiaries));
-            if(fuelData) localStorage.setItem('fuelData', JSON.stringify(fuelData));
+            if (cloudFuelData && !Array.isArray(cloudFuelData)) {
+                cloudFuelData = Object.values(cloudFuelData);
+            }
+
+            const mergedMap = new Map();
+            localFuelData.forEach(item => mergedMap.set(item.id, item));
+            if (Array.isArray(cloudFuelData)) {
+                cloudFuelData.forEach(item => mergedMap.set(item.id, item));
+            }
+
+            const finalFuelData = Array.from(mergedMap.values());
+
+            localStorage.setItem('fuelData', JSON.stringify(finalFuelData));
+            if (finalFuelData.length > 0) {
+                await saveCloudData('fuelData', finalFuelData);
+            }
+
+            ['appUsers', 'fuelTypes', 'beneficiaries'].forEach(async (key) => {
+                let localVal = JSON.parse(localStorage.getItem(key)) || [];
+                let cloudVal = await getCloudData(key) || [];
+                if (cloudVal && !Array.isArray(cloudVal)) cloudVal = Object.values(cloudVal);
+                
+                const merged = [...new Set([...localVal, ...(Array.isArray(cloudVal) ? cloudVal : [])])];
+                localStorage.setItem(key, JSON.stringify(merged));
+                await saveCloudData(key, merged);
+            });
         }
 
         window.initCloudSystem = async function() {
@@ -719,6 +754,80 @@
             document.getElementById('dateInput').value = getTodayString();
         }
 
+        // --- دالة استيراد ملف Excel مع منع التكرار ---
+        async function importExcelFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const jsonRows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                    let existingData = JSON.parse(localStorage.getItem('fuelData')) || [];
+                    let addedCount = 0;
+
+                    for (let i = 0; i < jsonRows.length; i++) {
+                        let row = jsonRows[i];
+                        if (!row || row.length < 6) continue;
+                        
+                        let serial = row[0];
+                        let date = row[1];
+                        let beneficiary = row[2];
+                        let type = row[3];
+                        let trucksStr = row[4];
+                        let qtyStr = row[5];
+
+                        if (!date || !type || isNaN(serial)) continue;
+
+                        let trucks = parseInt(String(trucksStr).replace(/[^0-9]/g, '')) || 1;
+                        let cleanQty = parseFloat(String(qtyStr).replace(/,/g, '').replace(/[^0-9.]/g, '')) || 0;
+                        let unit = String(qtyStr).includes('طن') ? 'طن' : 'لتر';
+
+                        // التحقق من عدم وجود السجل مسبقاً لمنع التكرار
+                        let isDuplicate = existingData.some(item => 
+                            item.date === String(date) && 
+                            item.beneficiary === String(beneficiary) && 
+                            item.type === String(type) && 
+                            Math.abs(item.quantity - cleanQty) < 0.01
+                        );
+
+                        if (!isDuplicate && cleanQty > 0) {
+                            const newRecord = {
+                                id: (Date.now() + Math.random()).toString(),
+                                serialNo: existingData.filter(r => !r.isDeleted).length + 1,
+                                date: String(date),
+                                beneficiary: String(beneficiary),
+                                type: String(type),
+                                trucks: trucks,
+                                quantity: cleanQty,
+                                unit: unit,
+                                addedBy: currentUser ? currentUser.name : 'استيراد Excel',
+                                isDeleted: false,
+                                status: 'active'
+                            };
+                            existingData.push(newRecord);
+                            addedCount++;
+                        }
+                    }
+
+                    localStorage.setItem('fuelData', JSON.stringify(existingData));
+                    await saveCloudData('fuelData', existingData);
+
+                    alert(`تم استيراد الملف بنجاح! تمت إضافة ${addedCount} سجل جديد بدون تكرار البيانات.`);
+                    generateReport();
+                } catch (err) {
+                    console.error(err);
+                    alert("حدث خطأ أثناء قراءة ملف الـ Excel.");
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
         function initiateEdit(txnId) {
             let data = JSON.parse(localStorage.getItem('fuelData')) || [];
             const record = data.find(r => r.id === txnId && !r.isDeleted);
@@ -785,7 +894,7 @@
 
             let periodText = "الفترة: جميع السجلات";
             if (startDate && endDate) {
-                periodText = `الفترة من: ${startDate}  إلى: ${endDate}`;
+                periodText = `الفترة من: ${startDate} إلى: ${endDate}`;
             } else if (startDate) {
                 periodText = `الفترة من: ${startDate}`;
             } else if (endDate) {
@@ -829,7 +938,6 @@
                 `;
             });
 
-            // تجميع الكميات وعدد الشاحنات حسب الصنف للمعاملات المفعلة والمفلترة مع تنسيق الأرقام بالفواصل
             const totals = {};
             filteredData.forEach(item => {
                 if (totals[item.type] === undefined) {
@@ -977,6 +1085,7 @@
 
             const wb = XLSX.utils.book_new();
             const ws = XLSX.utils.aoa_to_sheet(wsData);
+            ws['!rtl'] = true;
             XLSX.utils.book_append_sheet(wb, ws, "التقرير");
             XLSX.writeFile(wb, fileName + ".xlsx");
         }
@@ -1034,6 +1143,7 @@
 
             const wb = XLSX.utils.book_new();
             const ws = XLSX.utils.aoa_to_sheet(wsData);
+            ws['!rtl'] = true;
             XLSX.utils.book_append_sheet(wb, ws, "التقرير");
 
             let wbout = XLSX.write(wb, {bookType:'xlsx', type:'array'});
