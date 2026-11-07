@@ -2,1485 +2,1139 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>نظام إدارة المحروقات السحابي</title>
-    
-    <meta name="theme-color" content="#0a1f44">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="إدارة المحروقات">
-    <link rel="manifest" id="pwa-manifest">
-
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تطبيق إدارة المحروقات</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+        const firebaseConfig = {
+          apiKey: "AIzaSyAb6ftQGEVhO51Bykyc2jvGzNse9NQzJD8",
+          authDomain: "fuel-app-6d3d4.firebaseapp.com",
+          databaseURL: "https://fuel-app-6d3d4-default-rtdb.europe-west1.firebasedatabase.app",
+          projectId: "fuel-app-6d3d4",
+          storageBucket: "fuel-app-6d3d4.firebasestorage.app",
+          messagingSenderId: "1004234378863",
+          appId: "1:1004234378863:web:ada2a63463724d9258c79a",
+          measurementId: "G-R9ZTVJ7XH1"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        window.fbDb = db;
+        window.fbRef = ref;
+        window.fbSet = set;
+        window.fbGet = get;
+        window.fbChild = child;
+        
+        if (typeof window.initCloudSystem === 'function') {
+            window.initCloudSystem();
+        }
+    </script>
 
     <style>
-        :root {
-            --primary-dark: #0a1f44;
-            --primary-blue: #164082;
-            --primary-gradient: linear-gradient(135deg, #0a1f44 0%, #1a4d9c 100%);
-            --accent-green: #16a34a;
-            --accent-green-hover: #15803d;
-            --accent-green-light: #dcfce7;
-            --bg-body: #f1f5f9;
-            --bg-card: #ffffff;
-            --text-main: #0f172a;
-            --text-muted: #64748b;
-            --border-color: #e2e8f0;
-            --input-bg: #f8fafc;
-            --danger: #dc2626;
-            --warning: #d97706;
-            --shadow: 0 4px 15px rgba(10, 31, 68, 0.08);
-            --radius-lg: 18px;
-            --radius-md: 12px;
-        }
-
-        [data-theme="dark"] {
-            --primary-dark: #061229;
-            --primary-blue: #1e3a8a;
-            --primary-gradient: linear-gradient(135deg, #061229 0%, #0f295c 100%);
-            --bg-body: #0b1120;
-            --bg-card: #1e293b;
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-            --border-color: #334155;
-            --input-bg: #0f172a;
-            --accent-green-light: #064e3b;
-            --shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Cairo', sans-serif;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        body {
-            background-color: var(--bg-body);
-            color: var(--text-main);
-            padding-bottom: 85px;
-            transition: background-color 0.25s, color 0.25s;
-            overflow-x: hidden;
-        }
-
-        .app-header {
-            background: var(--primary-gradient);
-            color: #ffffff;
-            padding: 18px 16px 28px;
-            border-bottom-left-radius: 26px;
-            border-bottom-right-radius: 26px;
-            box-shadow: 0 4px 15px rgba(10, 31, 68, 0.2);
-            position: relative;
-        }
-
-        .header-top {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 14px;
-        }
-
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            background: rgba(255, 255, 255, 0.15);
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.78rem;
-            font-weight: 600;
-        }
-
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background-color: #4ade80;
-            box-shadow: 0 0 6px #4ade80;
-        }
-
-        .header-actions {
-            display: flex;
-            gap: 8px;
-        }
-
-        .icon-btn {
-            background: rgba(255, 255, 255, 0.15);
-            border: none;
-            color: #fff;
-            width: 38px;
-            height: 38px;
-            border-radius: 11px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1rem;
-            cursor: pointer;
-        }
-
-        .greeting-box h1 {
-            font-size: 1.3rem;
-            font-weight: 800;
-            margin-bottom: 4px;
-        }
-
-        .greeting-box p {
-            font-size: 0.85rem;
-            opacity: 0.9;
-        }
-
-        .container {
-            max-width: 700px;
-            margin: -18px auto 0;
-            padding: 0 14px;
-            position: relative;
-            z-index: 2;
-        }
-
-        .tab-view {
-            display: none;
-            animation: fadeIn 0.2s ease-in-out;
-        }
-
-        .tab-view.active {
-            display: block;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(6px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .card {
-            background: var(--bg-card);
-            border-radius: var(--radius-lg);
-            padding: 18px 16px;
-            box-shadow: var(--shadow);
-            border: 1px solid var(--border-color);
-            margin-bottom: 16px;
-        }
-
-        .form-group {
-            margin-bottom: 12px;
-        }
-
-        .input-pill {
-            display: flex;
-            align-items: center;
-            background: var(--input-bg);
-            border: 1.5px solid var(--border-color);
-            border-radius: var(--radius-md);
-            padding: 4px 12px;
-            min-height: 52px;
-            transition: border-color 0.2s, box-shadow 0.2s;
-        }
-
-        .input-pill:focus-within {
-            border-color: var(--accent-green);
-            box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15);
-        }
-
-        .input-pill i {
-            color: var(--accent-green);
-            font-size: 1.15rem;
-            width: 28px;
-            text-align: center;
-            margin-left: 8px;
-        }
-
-        .input-pill label {
-            font-size: 0.85rem;
-            font-weight: 700;
-            color: var(--text-muted);
-            min-width: 95px;
-        }
-
-        .input-pill input,
-        .input-pill select {
-            flex: 1;
-            border: none;
-            background: transparent;
-            color: var(--text-main);
-            font-size: 0.98rem;
-            font-weight: 700;
-            outline: none;
-            width: 100%;
-            text-align: right;
-        }
-
-        .input-pill input[readonly] {
-            color: var(--text-muted);
-            cursor: not-allowed;
-        }
-
-        .last-entry-banner {
-            background: var(--input-bg);
-            border: 1px dashed var(--border-color);
-            border-radius: var(--radius-md);
-            padding: 10px 14px;
-            margin: 14px 0;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            font-size: 0.84rem;
-            font-weight: 600;
-        }
-
-        .last-entry-banner i {
-            color: var(--primary-blue);
-            margin-left: 6px;
-        }
-
-        .btn-main {
-            width: 100%;
-            background: var(--accent-green);
-            color: #ffffff;
-            border: none;
-            border-radius: var(--radius-md);
-            height: 54px;
-            font-size: 1.05rem;
-            font-weight: 800;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);
-        }
-
-        .quick-periods {
-            display: flex;
-            gap: 6px;
-            overflow-x: auto;
-            padding-bottom: 8px;
-            margin-bottom: 12px;
-        }
-
-        .chip-btn {
-            background: var(--input-bg);
-            border: 1px solid var(--border-color);
-            color: var(--text-main);
-            padding: 6px 13px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 700;
-            white-space: nowrap;
-            cursor: pointer;
-        }
-
-        .chip-btn.active {
-            background: var(--primary-blue);
-            color: #fff;
-            border-color: var(--primary-blue);
-        }
-
-        .filter-actions {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-top: 10px;
-        }
-
-        .btn-secondary {
-            background: var(--primary-blue);
-            color: #fff;
-            border: none;
-            border-radius: var(--radius-md);
-            height: 46px;
-            font-weight: 700;
-            font-size: 0.9rem;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-        }
-
-        .btn-outline {
-            background: transparent;
-            color: var(--text-main);
-            border: 1.5px solid var(--border-color);
-            border-radius: var(--radius-md);
-            height: 46px;
-            font-weight: 700;
-            font-size: 0.9rem;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-        }
-
-        .summary-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 8px;
-            margin-bottom: 14px;
-        }
-
-        .summary-item {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-md);
-            padding: 10px 8px;
-            text-align: center;
-            box-shadow: var(--shadow);
-        }
-
-        .summary-item .num {
-            font-size: 1.15rem;
-            font-weight: 800;
-            color: var(--accent-green);
-            display: block;
-        }
-
-        .summary-item .lbl {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            font-weight: 600;
-        }
-
-        .table-wrapper {
-            max-height: 420px;
-            overflow: auto;
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-md);
-            background: var(--bg-card);
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            min-width: 620px;
-            font-size: 0.85rem;
-        }
-
-        th {
-            background: var(--primary-dark);
-            color: #ffffff;
-            padding: 11px 8px;
-            font-weight: 700;
-            position: sticky;
-            top: 0;
-            z-index: 5;
-            border: 1px solid #1e3a8a;
-        }
-
-        td {
-            padding: 10px 8px;
-            text-align: center;
-            border-bottom: 1px solid var(--border-color);
-            color: var(--text-main);
-            font-weight: 600;
-        }
-
-        tr:nth-child(even) td {
-            background: rgba(148, 163, 184, 0.05);
-        }
-
-        .empty-state {
-            padding: 32px 16px;
-            text-align: center;
-            color: var(--text-muted);
-            font-weight: 700;
-        }
-
-        .export-bar {
-            display: flex;
-            gap: 8px;
-            margin-top: 12px;
-        }
-
-        .btn-pdf { background: #dc2626; color: #fff; }
-        .btn-excel { background: #16a34a; color: #fff; }
-
-        .bottom-nav {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 70px;
-            background: var(--bg-card);
-            border-top: 1px solid var(--border-color);
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-            z-index: 100;
-            box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.06);
-        }
-
-        .nav-btn {
-            flex: 1;
-            border: none;
-            background: none;
-            color: var(--text-muted);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 4px;
-            font-size: 0.78rem;
-            font-weight: 700;
-            cursor: pointer;
-            height: 100%;
-        }
-
-        .nav-btn i {
-            font-size: 1.25rem;
-            padding: 4px 16px;
-            border-radius: 14px;
-        }
-
-        .nav-btn.active {
-            color: var(--primary-blue);
-        }
-
-        [data-theme="dark"] .nav-btn.active {
-            color: #4ade80;
-        }
-
-        .nav-btn.active i {
-            background: rgba(22, 64, 130, 0.12);
-        }
-
-        .modal-backdrop {
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.6);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            padding: 16px;
-            z-index: 200;
-        }
-
-        .modal-backdrop.show {
-            display: flex;
-        }
-
-        .modal-card {
-            background: var(--bg-card);
-            border-radius: var(--radius-lg);
-            max-width: 480px;
-            width: 100%;
-            padding: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            max-height: 85vh;
-            overflow-y: auto;
-        }
-
-        .modal-card h3 {
-            margin-bottom: 12px;
-            font-size: 1.15rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .settings-section {
-            margin-bottom: 16px;
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 12px;
-        }
-
-        .settings-section h4 {
-            font-size: 0.95rem;
-            margin-bottom: 8px;
-            color: var(--primary-blue);
-        }
-
-        .settings-list {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-            margin-bottom: 8px;
-        }
-
-        .settings-tag {
-            background: var(--input-bg);
-            border: 1px solid var(--border-color);
-            padding: 4px 10px;
-            border-radius: 8px;
-            font-size: 0.8rem;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .settings-tag button {
-            background: none;
-            border: none;
-            color: var(--danger);
-            cursor: pointer;
-        }
-
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f3f4f6; }
+        .tab-btn.active { border-bottom: 4px solid #2563eb; color: #2563eb; font-weight: bold; }
+        .hidden { display: none !important; }
+        
+        th, td { padding: 8px 12px !important; }
+        
         @media print {
-            body { padding: 0; background: #fff; color: #000; }
-            .app-header, .bottom-nav, .no-print { display: none !important; }
-            .container { max-width: 100%; margin: 0; padding: 0; }
-            .table-wrapper { max-height: none; overflow: visible; border: none; }
-            th { background: #0a1f44 !important; color: #fff !important; -webkit-print-color-adjust: exact; }
+            body { background: white; }
+            no-print { display: none; }
+            table { page-break-inside: auto; }
+            tr { page-break-inside: avoid; page-break-after: auto; }
+            thead { display: table-header-group; }
+            tfoot { display: table-footer-group; }
+        }
+
+        @page {
+            size: A4 portrait;
+            margin: 15mm;
+            @bottom-right {
+                content: "صفحة " counter(page) " من " counter(pages);
+                font-size: 11px;
+                font-family: sans-serif;
+            }
         }
     </style>
 </head>
-<body>
+<body class="bg-gray-100 text-gray-800 pb-10">
 
-    <header class="app-header">
-        <div class="header-top">
-            <div class="status-badge">
-                <span class="status-dot" id="sync-dot"></span>
-                <span id="sync-text">النظام يعمل</span>
-            </div>
-            <div class="header-actions">
-                <button class="icon-btn" onclick="openSettingsModal()" title="إعدادات التطبيق">
-                    <i class="fa-solid fa-gear"></i>
-                </button>
-                <button class="icon-btn" onclick="toggleTheme()" title="الوضع الليلي/النهاري">
-                    <i class="fa-solid fa-moon" id="theme-icon"></i>
-                </button>
-            </div>
-        </div>
-        <div class="greeting-box">
-            <h1 id="greeting-title">ماذا ستسجل اليوم يا مدير النظام؟</h1>
-            <p id="current-date-display"></p>
+    <header class="bg-blue-600 text-white p-4 shadow-md flex justify-between items-center">
+        <h1 class="text-xl font-bold">إدارة المحروقات (سحابي)</h1>
+        <div id="userInfo" class="hidden text-sm items-center gap-4" style="display: none;">
+            <span id="userNameDisplay"></span>
+            <button onclick="logout()" class="bg-red-500 hover:bg-red-600 px-3 py-1 rounded font-bold">خروج</button>
         </div>
     </header>
 
-    <main class="container">
-
-        <!-- 1. شاشة الإدخال -->
-        <section id="tab-entry" class="tab-view active">
-            <div class="card">
-                <form id="fuel-form" onsubmit="handleFormSubmit(event)">
-                    
-                    <div class="form-group">
-                        <div class="input-pill">
-                            <i class="fa-solid fa-hashtag"></i>
-                            <label for="txNumber">رقم المعاملة</label>
-                            <input type="text" id="txNumber" readonly style="font-weight: 800; color: var(--accent-green);">
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <div class="input-pill">
-                            <i class="fa-solid fa-gas-pump"></i>
-                            <label for="fuelType">نوع الوقود</label>
-                            <select id="fuelType" required onchange="updateUnitLabel()"></select>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <div class="input-pill">
-                            <i class="fa-solid fa-building-user"></i>
-                            <label for="beneficiary">الجهة المستفيدة</label>
-                            <select id="beneficiary" required></select>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <div class="input-pill">
-                            <i class="fa-solid fa-sliders"></i>
-                            <label for="category">الصنف</label>
-                            <input type="text" id="category" placeholder="مثال: تشغيلي / طوارئ" required>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <div class="input-pill">
-                            <i class="fa-solid fa-calendar-days"></i>
-                            <label for="entryDate">التاريخ</label>
-                            <input type="date" id="entryDate" required>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <div class="input-pill">
-                            <i class="fa-solid fa-truck-moving"></i>
-                            <label for="trucksCount">عدد الشاحنات</label>
-                            <input type="number" id="trucksCount" inputmode="numeric" min="1" placeholder="0" required>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <div class="input-pill">
-                            <i class="fa-solid fa-fill-drip"></i>
-                            <label for="quantity" id="quantity-label">الكمية (لتر)</label>
-                            <input type="number" id="quantity" inputmode="decimal" step="any" min="1" placeholder="0.00" required>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <div class="input-pill">
-                            <i class="fa-solid fa-note-sticky"></i>
-                            <label for="notes">بيان / ملاحظات</label>
-                            <input type="text" id="notes" placeholder="اختياري (اسم السائق...)">
-                        </div>
-                    </div>
-
-                    <div class="last-entry-banner">
-                        <span><i class="fa-solid fa-clock-rotate-left"></i> <span id="last-entry-text">آخر كمية تم إدخالها: بانتظار الإدخال</span></span>
-                    </div>
-
-                    <button type="submit" class="btn-main" id="save-btn">
-                        <i class="fa-solid fa-check-double"></i>
-                        <span>حفظ المعاملة والتالي</span>
-                    </button>
-                </form>
-            </div>
-        </section>
-
-        <!-- 2. شاشة التقارير -->
-        <section id="tab-reports" class="tab-view">
-            <div class="card no-print">
-                <div class="quick-periods">
-                    <button type="button" class="chip-btn" onclick="setQuickPeriod('today', this)">اليوم</button>
-                    <button type="button" class="chip-btn" onclick="setQuickPeriod('week', this)">آخر أسبوع</button>
-                    <button type="button" class="chip-btn active" onclick="setQuickPeriod('month', this)">هذا الشهر</button>
-                    <button type="button" class="chip-btn" onclick="setQuickPeriod('prevMonth', this)">الشهر السابق</button>
-                </div>
-
-                <div class="form-group">
-                    <div class="input-pill">
-                        <i class="fa-solid fa-calendar-day"></i>
-                        <label>من تاريخ</label>
-                        <input type="date" id="filterFrom">
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <div class="input-pill">
-                        <i class="fa-solid fa-calendar-check"></i>
-                        <label>إلى تاريخ</label>
-                        <input type="date" id="filterTo">
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <div class="input-pill">
-                        <i class="fa-solid fa-magnifying-glass"></i>
-                        <label>بحث سريع</label>
-                        <input type="text" id="searchQuery" placeholder="ابحث بالجهة، رقم المعاملة..." oninput="applyLocalSearch()">
-                    </div>
-                </div>
-
-                <div class="filter-actions">
-                    <button type="button" class="btn-secondary" onclick="loadReportData(false)">
-                        <i class="fa-solid fa-filter"></i> عرض بيانات الفترة
-                    </button>
-                    <button type="button" class="btn-outline" onclick="loadReportData(true)">
-                        <i class="fa-solid fa-list-ul"></i> عرض الكل (إلغاء الفلتر)
-                    </button>
-                </div>
-            </div>
-
-            <div class="summary-grid" id="summary-cards">
-                <div class="summary-item">
-                    <span class="num" id="sum-trucks">0</span>
-                    <span class="lbl">إجمالي الشاحنات</span>
-                </div>
-                <div class="summary-item">
-                    <span class="num" id="sum-diesel">0</span>
-                    <span class="lbl">إجمالي السولار</span>
-                </div>
-                <div class="summary-item">
-                    <span class="num" id="sum-other">0</span>
-                    <span class="lbl">باقي الأنواع</span>
-                </div>
-            </div>
-
-            <div class="card" id="printable-report-area">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                    <h3 style="font-size:1rem;">كشف حركات المحروقات</h3>
-                    <span id="report-period-label" style="font-size:0.8rem; color:var(--text-muted); font-weight:700;">لم يتم التحميل بعد</span>
-                </div>
-
-                <div class="table-wrapper">
-                    <table id="reports-table">
-                        <thead>
-                            <tr>
-                                <th>م</th>
-                                <th>رقم المعاملة</th>
-                                <th>التاريخ</th>
-                                <th>الجهة المستفيدة</th>
-                                <th>نوع الوقود</th>
-                                <th>الصنف</th>
-                                <th>الشاحنات</th>
-                                <th>الكمية</th>
-                                <th>ملاحظات</th>
-                                <th class="no-print">إجراء</th>
-                            </tr>
-                        </thead>
-                        <tbody id="reports-tbody">
-                            <tr>
-                                <td colspan="10" class="empty-state">
-                                    لا توجد بيانات مدخلة لهذه الفترة
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <div style="margin-top:10px; display:flex; justify-content:space-between; font-size:0.78rem; color:var(--text-muted);" id="report-footer-info">
-                    <span id="export-timestamp"></span>
-                    <span>نظام إدارة المحروقات</span>
-                </div>
-
-                <div class="export-bar no-print">
-                    <button type="button" class="btn-secondary btn-pdf" style="flex:1;" onclick="exportToPDF()">
-                        <i class="fa-solid fa-file-pdf"></i> تصدير PDF
-                    </button>
-                    <button type="button" class="btn-secondary btn-excel" style="flex:1;" onclick="exportToExcel('reports')">
-                        <i class="fa-solid fa-file-excel"></i> تصدير Excel
-                    </button>
-                </div>
-            </div>
-        </section>
-
-        <!-- 3. شاشة المحذوفات -->
-        <section id="tab-audit" class="tab-view">
-            <div class="card">
-                <h3 style="font-size:1rem; margin-bottom:10px;">سجل التدقيق والمحذوفات</h3>
-                <div class="form-group no-print">
-                    <div class="input-pill">
-                        <i class="fa-solid fa-filter"></i>
-                        <label>تصفية السجل</label>
-                        <input type="text" id="auditSearch" placeholder="ابحث..." oninput="renderAuditTable()">
-                    </div>
-                </div>
-
-                <div class="table-wrapper">
-                    <table id="audit-table">
-                        <thead>
-                            <tr>
-                                <th>م</th>
-                                <th>نوع العملية</th>
-                                <th>رقم المعاملة</th>
-                                <th>الجهة</th>
-                                <th>الكمية</th>
-                                <th>بواسطة</th>
-                                <th>تاريخ الإجراء</th>
-                            </tr>
-                        </thead>
-                        <tbody id="audit-tbody">
-                            <tr>
-                                <td colspan="7" class="empty-state">لا توجد سجلات محذوفات مطابقة</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="export-bar no-print">
-                    <button type="button" class="btn-outline" style="flex:1;" onclick="loadAuditLogs()">
-                        <i class="fa-solid fa-rotate"></i> تحديث السجل
-                    </button>
-                    <button type="button" class="btn-secondary btn-excel" style="flex:1;" onclick="exportToExcel('audit')">
-                        <i class="fa-solid fa-file-excel"></i> تصدير السجل Excel
-                    </button>
-                </div>
-            </div>
-        </section>
-
-    </main>
-
-    <nav class="bottom-nav">
-        <button class="nav-btn active" onclick="switchTab('entry', this)">
-            <i class="fa-solid fa-circle-plus"></i>
-            <span>الإدخال</span>
-        </button>
-        <button class="nav-btn" onclick="switchTab('reports', this)">
-            <i class="fa-solid fa-chart-pie"></i>
-            <span>التقارير</span>
-        </button>
-        <button class="nav-btn" onclick="switchTab('audit', this)">
-            <i class="fa-solid fa-trash-can-arrow-up"></i>
-            <span>المحذوفات</span>
-        </button>
-    </nav>
-
-    <!-- نافذة المودال العامة -->
-    <div class="modal-backdrop" id="app-modal">
-        <div class="modal-card">
-            <h3 id="modal-title">تنبيه</h3>
-            <p id="modal-message" style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 18px; line-height: 1.6;"></p>
-            <div class="modal-actions" style="display: flex; gap: 10px;">
-                <button class="btn-secondary" style="flex:1; background:var(--accent-green);" id="modal-confirm-btn">تأكيد</button>
-                <button class="btn-outline" style="flex:1;" onclick="closeModal()">إلغاء</button>
-            </div>
+    <div id="login-screen" class="max-w-sm mx-auto mt-20 bg-white p-8 rounded-lg shadow-md block">
+        <h2 class="text-xl font-bold mb-6 text-center text-blue-700">تسجيل الدخول</h2>
+        <div class="mb-4">
+            <label class="block text-sm font-medium mb-1">رقم الهوية (اسم المستخدم)</label>
+            <input type="text" id="loginId" class="w-full border p-2 rounded focus:ring focus:ring-blue-200">
         </div>
+        <div class="mb-6">
+            <label class="block text-sm font-medium mb-1">كلمة المرور</label>
+            <input type="password" id="loginPass" class="w-full border p-2 rounded focus:ring focus:ring-blue-200">
+        </div>
+        <button onclick="login()" class="w-full bg-blue-600 text-white font-bold py-2 rounded hover:bg-blue-700">دخول</button>
     </div>
 
-    <!-- نافذة الإعدادات -->
-    <div class="modal-backdrop" id="settings-modal">
-        <div class="modal-card">
-            <h3>
-                <span>إعدادات النظام</span>
-                <button onclick="closeSettingsModal()" style="background:none; border:none; color:var(--text-main); cursor:pointer; font-size:1.2rem;"><i class="fa-solid fa-xmark"></i></button>
-            </h3>
+    <div id="main-app" class="hidden" style="display: none;">
+        
+        <div class="flex justify-around bg-white shadow-sm mb-4 text-sm font-medium" id="nav-menu">
+            <button onclick="switchTab('input-tab')" id="btn-input-tab" class="tab-btn active w-full py-3 text-gray-600 hidden" style="display: none;">تسجيل شحنة</button>
+            <button onclick="switchTab('report-tab')" id="btn-report-tab" class="tab-btn w-full py-3 text-gray-600">التقارير</button>
+            <button onclick="switchTab('audit-tab')" id="btn-audit-tab" class="tab-btn w-full py-3 text-gray-600 hidden" style="display: none;">سجل المحذوفات</button>
+            <button onclick="switchTab('settings-tab')" id="btn-settings-tab" class="tab-btn w-full py-3 text-gray-600 hidden" style="display: none;">الإعدادات</button>
+        </div>
 
-            <div class="settings-section">
-                <h4>إدارة المستخدمين</h4>
-                <div class="settings-list" id="users-tags-list"></div>
-                <div style="display:flex; gap:6px;">
-                    <input type="text" id="new-user-input" placeholder="اسم المستخدم الجديد..." style="flex:1; padding:8px; border:1px solid var(--border-color); border-radius:8px; background:var(--input-bg); color:var(--text-main);">
-                    <button class="btn-secondary" onclick="addUser()" style="height:auto; padding:0 14px;">إضافة</button>
+        <div class="max-w-2xl mx-auto p-4">
+            
+            <div id="input-tab" class="hidden" style="display: none;">
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h2 id="formTitle" class="text-lg font-semibold mb-4 border-b pb-2">تسجيل بيانات جديدة</h2>
+                    <form id="fuelForm" onsubmit="saveData(event)">
+                        <input type="hidden" id="editingTxnId" value="">
+                        
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium mb-1">التاريخ</label>
+                            <input type="date" id="dateInput" required class="w-full border p-2 rounded focus:ring focus:ring-blue-200">
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium mb-1">الجهة المستفيدة</label>
+                            <select id="beneficiaryInput" required class="w-full border p-2 rounded focus:ring focus:ring-blue-200"></select>
+                        </div>
+
+                        <div class="flex gap-3 mb-4">
+                            <div class="w-1/2">
+                                <label class="block text-sm font-medium mb-1">نوع الوقود / الصنف</label>
+                                <select id="typeInput" onchange="updateUnitBasedOnType()" required class="w-full border p-2 rounded focus:ring focus:ring-blue-200"></select>
+                            </div>
+                            <div class="w-1/2">
+                                <label class="block text-sm font-medium mb-1">الكمية</label>
+                                <div class="flex">
+                                    <input type="number" id="quantityInput" placeholder="الرقم" required class="w-2/3 border p-2 rounded-r focus:ring focus:ring-blue-200" step="any">
+                                    <select id="unitInput" class="w-1/3 border-y border-l p-2 rounded-l bg-gray-50 focus:ring focus:ring-blue-200 text-xs">
+                                        <option value="لتر">لتر</option>
+                                        <option value="طن">طن</option>
+                                        <option value="كوب">كوب</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium mb-1">عدد الشاحنات</label>
+                            <input type="number" id="trucksInput" placeholder="عدد الشاحنات" required min="1" class="w-full border p-2 rounded focus:ring focus:ring-blue-200">
+                        </div>
+
+                        <button type="submit" id="submitBtn" class="w-full bg-blue-600 text-white font-bold py-3 rounded hover:bg-blue-700 transition">حفظ البيانات</button>
+                        <button type="button" id="cancelEditBtn" onclick="cancelEdit()" class="w-full mt-2 bg-gray-400 text-white font-bold py-2 rounded hover:bg-gray-500 hidden" style="display: none;">إلغاء التعديل</button>
+                    </form>
                 </div>
             </div>
 
-            <div class="settings-section">
-                <h4>إدارة الجهات المستفيدة</h4>
-                <div class="settings-list" id="beneficiaries-tags-list"></div>
-                <div style="display:flex; gap:6px;">
-                    <input type="text" id="new-beneficiary-input" placeholder="اسم الجهة المستفيدة..." style="flex:1; padding:8px; border:1px solid var(--border-color); border-radius:8px; background:var(--input-bg); color:var(--text-main);">
-                    <button class="btn-secondary" onclick="addBeneficiary()" style="height:auto; padding:0 14px;">إضافة</button>
+            <div id="report-tab" class="hidden" style="display: none;">
+                <div class="bg-white p-4 rounded-lg shadow-md mb-4">
+                    <h2 class="text-lg font-semibold mb-3 border-b pb-2">فلترة التقرير</h2>
+                    <div class="flex gap-2 mb-3">
+                        <div class="w-1/3">
+                            <label class="block text-xs font-medium mb-1">نوع الوقود</label>
+                            <select id="typeFilter" class="w-full border p-2 rounded text-xs bg-gray-50"></select>
+                        </div>
+                        <div class="w-1/3">
+                            <label class="block text-xs font-medium mb-1">من تاريخ</label>
+                            <input type="date" id="startDate" class="w-full border p-2 rounded text-xs">
+                        </div>
+                        <div class="w-1/3">
+                            <label class="block text-xs font-medium mb-1">إلى تاريخ</label>
+                            <input type="date" id="endDate" class="w-full border p-2 rounded text-xs">
+                        </div>
+                    </div>
+                    <button onclick="generateReport()" class="w-full bg-gray-800 text-white font-bold py-2 rounded mb-2 hover:bg-gray-900">تحديث التقرير</button>
+                    
+                    <div class="grid grid-cols-2 gap-2 mt-4">
+                        <button onclick="exportExcel('printable-report')" class="bg-green-600 text-white text-sm font-bold py-2 rounded">تنزيل Excel</button>
+                        <button onclick="shareExcel('printable-report')" class="bg-green-500 text-white text-sm font-bold py-2 rounded">مشاركة Excel</button>
+                        <button onclick="exportPDF('printable-report')" class="bg-red-600 text-white text-sm font-bold py-2 rounded">تنزيل PDF</button>
+                        <button onclick="sharePDF('printable-report')" class="bg-red-500 text-white text-sm font-bold py-2 rounded">مشاركة PDF</button>
+                    </div>
+                </div>
+
+                <div id="printable-report" class="bg-white p-6 rounded-lg shadow-md mt-4 border border-gray-200">
+                    <div class="text-center border-b-2 border-blue-600 pb-4 mb-4">
+                        <h2 class="font-bold text-xl text-blue-900 mb-2">تقرير كمية المحروقات</h2>
+                        <p id="reportPeriodDisplay" class="text-sm text-gray-700 font-semibold"></p>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <h3 class="font-bold text-sm mb-2 text-gray-700">تفاصيل الحركات</h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-xs text-center border-collapse border border-gray-300">
+                                <thead>
+                                    <tr class="bg-blue-50 text-blue-900">
+                                        <th class="border border-gray-300 p-2">رقم المعاملة</th>
+                                        <th class="border border-gray-300 p-2">التاريخ</th>
+                                        <th class="border border-gray-300 p-2">الجهة المستفيدة</th>
+                                        <th class="border border-gray-300 p-2">الصنف</th>
+                                        <th class="border border-gray-300 p-2">عدد الشاحنات</th>
+                                        <th class="border border-gray-300 p-2">الكمية</th>
+                                        <th class="border border-gray-300 p-2 admin-only hidden" data-html2canvas-ignore="true">إجراء</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="reportTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <h3 class="font-bold text-sm mb-2 text-blue-800">إجمالي الكمية وعدد الشاحنات حسب الصنف</h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-xs text-center border-collapse border border-gray-300">
+                                <thead>
+                                    <tr class="bg-gray-100 text-gray-800">
+                                        <th class="border border-gray-300 p-2 w-1/3">الصنف</th>
+                                        <th class="border border-gray-300 p-2 w-1/3">إجمالي الشاحنات</th>
+                                        <th class="border border-gray-300 p-2 w-1/3">إجمالي الكمية</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="summaryTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="mt-8 border-t border-gray-300 pt-4 text-xs text-gray-600">
+                        <div class="flex justify-between items-center">
+                            <span id="footerUser" class="font-bold"></span>
+                            <span id="footerTime" dir="ltr" class="font-bold"></span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div class="settings-section">
-                <h4>أنواع الوقود ووحدات القياس</h4>
-                <div class="settings-list" id="fuels-tags-list"></div>
-                <div style="display:flex; gap:6px; margin-bottom:6px;">
-                    <input type="text" id="new-fuel-name" placeholder="اسم الوقود..." style="flex:1; padding:8px; border:1px solid var(--border-color); border-radius:8px; background:var(--input-bg); color:var(--text-main);">
-                    <input type="text" id="new-fuel-unit" placeholder="الوحدة..." style="width:110px; padding:8px; border:1px solid var(--border-color); border-radius:8px; background:var(--input-bg); color:var(--text-main);">
+            <div id="audit-tab" class="hidden" style="display: none;">
+                <div class="bg-white p-4 rounded-lg shadow-md mb-4">
+                    <h2 class="text-lg font-semibold mb-3 border-b pb-2 text-red-600">سجل المعاملات المحذوفة والمعدلة</h2>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-xs text-center border-collapse border border-gray-300">
+                            <thead>
+                                <tr class="bg-gray-200">
+                                    <th class="border p-1">نوع الإجراء</th>
+                                    <th class="border p-1">رقم المعاملة</th>
+                                    <th class="border p-1">تفاصيل المعاملة (قبل وبعد)</th>
+                                    <th class="border p-1">بواسطة / الوقت</th>
+                                </tr>
+                            </thead>
+                            <tbody id="auditTableBody"></tbody>
+                        </table>
+                    </div>
                 </div>
-                <button class="btn-secondary" onclick="addFuelType()" style="width:100%; height:40px;">إضافة نوع وقود جديد</button>
             </div>
 
-            <button class="btn-outline" onclick="closeSettingsModal()" style="width:100%;">إغلاق الإعدادات</button>
+            <div id="settings-tab" class="hidden" style="display: none;">
+                <div class="bg-white p-4 rounded-lg shadow-md mb-4 border-l-4 border-blue-600">
+                    <h2 class="text-lg font-semibold mb-3 border-b pb-2">إدارة المستخدمين (المدير فقط)</h2>
+                    <div class="grid grid-cols-2 gap-2 mb-3 text-sm">
+                        <input type="text" id="newUserId" placeholder="رقم الهوية (اسم الدخول)" class="border p-2 rounded">
+                        <input type="text" id="newUserName" placeholder="الاسم الكامل" class="border p-2 rounded">
+                        <input type="password" id="newUserPass" placeholder="كلمة المرور" class="border p-2 rounded">
+                        <select id="newUserRole" class="border p-2 rounded">
+                            <option value="viewer">مستعرض (تقارير فقط)</option>
+                            <option value="entry">مدخل بيانات</option>
+                            <option value="admin">مدير نظام</option>
+                        </select>
+                    </div>
+                    <button onclick="addUser()" class="w-full bg-blue-600 text-white font-bold py-2 rounded mb-3">إضافة مستخدم</button>
+                    
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-xs text-center border-collapse border">
+                            <thead class="bg-gray-100">
+                                <tr>
+                                    <th class="border p-1">الهوية</th>
+                                    <th class="border p-1">الاسم</th>
+                                    <th class="border p-1">الصلاحية</th>
+                                    <th class="border p-1">حذف</th>
+                                </tr>
+                            </thead>
+                            <tbody id="usersListTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 rounded-lg shadow-md mb-4">
+                    <h2 class="text-sm font-semibold mb-2">إدارة الجهات المستفيدة</h2>
+                    <div class="flex gap-2 mb-2">
+                        <input type="text" id="newBeneficiary" placeholder="اسم الجهة" class="w-full border p-2 rounded text-sm">
+                        <button onclick="addSetting('beneficiaries', 'newBeneficiary')" class="bg-gray-800 text-white px-3 rounded text-sm shrink-0">إضافة</button>
+                    </div>
+                    <ul id="beneficiariesList" class="divide-y border rounded max-h-32 overflow-y-auto"></ul>
+                </div>
+
+                <div class="bg-white p-4 rounded-lg shadow-md">
+                    <h2 class="text-sm font-semibold mb-2">إدارة أنواع الوقود</h2>
+                    <div class="flex gap-2 mb-2">
+                        <input type="text" id="newFuelType" placeholder="نوع الوقود" class="w-full border p-2 rounded text-sm">
+                        <button onclick="addSetting('fuelTypes', 'newFuelType')" class="bg-gray-800 text-white px-3 rounded text-sm shrink-0">إضافة</button>
+                    </div>
+                    <ul id="fuelTypesList" class="divide-y border rounded max-h-32 overflow-y-auto"></ul>
+                </div>
+            </div>
+
         </div>
     </div>
 
     <script>
-        function toUnifiedDigits(str) {
-            if (str === null || str === undefined) return '';
-            return String(str).replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+        let currentUser = null;
+
+        function formatNumber(num) {
+            if (num === undefined || num === null || isNaN(num)) return "0";
+            return Number(num).toLocaleString('en-US');
         }
 
-        function formatUnifiedDateTime(dateObj = new Date()) {
-            const yyyy = dateObj.getFullYear();
-            const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
-            const dd = String(dateObj.getDate()).padStart(2, '0');
-            const hh = String(dateObj.getHours()).padStart(2, '0');
-            const min = String(dateObj.getMinutes()).padStart(2, '0');
-            return toUnifiedDigits(`${yyyy}-${mm}-${dd} ${hh}:${min}`);
+        function getTodayString() {
+            const d = new Date();
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
         }
 
-        let db = null;
-        let rtdb = null;
-
-        try {
-            const firebaseConfig = {
-                apiKey: "AIzaSyAb6ftQGEVh051Bykyc2jvGzNse9NQzJD8",
-                authDomain: "fuel-app-6d3d4.firebaseapp.com",
-                databaseURL: "https://fuel-app-6d3d4-default-rtdb.europe-west1.firebasedatabase.app",
-                projectId: "fuel-app-6d3d4",
-                storageBucket: "fuel-app-6d3d4.firebasestorage.app",
-                messagingSenderId: "1004234378863",
-                appId: "1:1004234378863:web:ada2a63463724d9258c79a",
-                measurementId: "G-R9ZTVJ7XH1"
-            };
-            if (!firebase.apps.length) {
-                firebase.initializeApp(firebaseConfig);
+        async function getCloudData(path) {
+            if (!window.fbDb) return null;
+            try {
+                const snapshot = await window.fbGet(window.fbChild(window.fbRef(window.fbDb), path));
+                return snapshot.exists() ? snapshot.val() : null;
+            } catch (e) {
+                console.error(e);
+                return null;
             }
-            db = firebase.firestore();
-            rtdb = firebase.database();
-        } catch (err) {}
+        }
 
-        let appUsers = JSON.parse(localStorage.getItem('fuel_app_users_list')) || ['مدير النظام', 'مشرف المخزن', 'مراقب الحركة'];
-        let currentUser = localStorage.getItem('fuel_app_user') || 'مدير النظام';
-        let appBeneficiaries = JSON.parse(localStorage.getItem('fuel_app_beneficiaries_list')) || ['الجهاد والسيطرة', 'الدفاع المدني', 'الخدمات الطبية', 'الطوارئ العامة'];
-        let appFuelTypes = JSON.parse(localStorage.getItem('fuel_app_fuels_list')) || [
-            { name: 'سولار', unit: 'لتر' },
-            { name: 'بنزين', unit: 'لتر' },
-            { name: 'غاز', unit: 'لتر' },
-            { name: 'وقود طائرات', unit: 'لتر' }
-        ];
+        async function saveCloudData(path, data) {
+            if (!window.fbDb) return;
+            try {
+                await window.fbSet(window.fbRef(window.fbDb, path), data);
+            } catch (e) {
+                console.error(e);
+            }
+        }
 
-        let loadedShipments = [];
-        let filteredShipments = [];
-        let loadedAuditLogs = [];
+        async function syncLocalToCloud() {
+            let users = JSON.parse(localStorage.getItem('appUsers')) || [];
+            let fuelTypes = JSON.parse(localStorage.getItem('fuelTypes')) || [];
+            let beneficiaries = JSON.parse(localStorage.getItem('beneficiaries')) || [];
+            let fuelData = JSON.parse(localStorage.getItem('fuelData')) || [];
 
-        window.addEventListener('DOMContentLoaded', () => {
-            updateGreeting();
-            populateDropdowns();
-            document.getElementById('current-date-display').textContent = `تاريخ اليوم: ${formatUnifiedDateTime().split(' ')[0]}`;
+            if(users.length === 0) {
+                users.push({ id: 'admin', name: 'مدير النظام الافتراضي', pass: 'admin', role: 'admin' });
+            }
+            if (!users.find(u => u.id === '802838904')) {
+                users.push({ id: '802838904', name: 'محمد حسن عبد الله', pass: '802838904', role: 'admin' });
+            }
+            if (fuelTypes.length === 0) {
+                fuelTypes = ["الغاز", "سولار تجاري", "سولار مؤسسات", "بنزين تجاري", "بنزين مؤسسات"];
+            }
+            if (beneficiaries.length === 0) {
+                beneficiaries = ["UNOPS"];
+            }
+
+            const cloudUsers = await getCloudData('appUsers');
+            const cloudFuelTypes = await getCloudData('fuelTypes');
+            const cloudBeneficiaries = await getCloudData('beneficiaries');
+            const cloudFuelData = await getCloudData('fuelData');
+
+            if (!cloudUsers) await saveCloudData('appUsers', users);
+            if (!cloudFuelTypes) await saveCloudData('fuelTypes', fuelTypes);
+            if (!cloudBeneficiaries) await saveCloudData('beneficiaries', beneficiaries);
+            if (!cloudFuelData && fuelData.length > 0) await saveCloudData('fuelData', fuelData);
+        }
+
+        async function loadCloudToLocal() {
+            await syncLocalToCloud();
+            const users = await getCloudData('appUsers');
+            const fuelTypes = await getCloudData('fuelTypes');
+            const beneficiaries = await getCloudData('beneficiaries');
+            const fuelData = await getCloudData('fuelData');
+
+            if(users) localStorage.setItem('appUsers', JSON.stringify(users));
+            if(fuelTypes) localStorage.setItem('fuelTypes', JSON.stringify(fuelTypes));
+            if(beneficiaries) localStorage.setItem('beneficiaries', JSON.stringify(beneficiaries));
+            if(fuelData) localStorage.setItem('fuelData', JSON.stringify(fuelData));
+        }
+
+        window.initCloudSystem = async function() {
+            await loadCloudToLocal();
             
-            const todayStr = formatUnifiedDateTime().split(' ')[0];
-            document.getElementById('entryDate').value = todayStr;
-            
-            const now = new Date();
-            const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-            document.getElementById('filterFrom').value = formatUnifiedDateTime(firstDayOfMonth).split(' ')[0];
-            document.getElementById('filterTo').value = todayStr;
+            document.getElementById('dateInput').value = getTodayString();
+            document.getElementById('trucksInput').value = "1";
 
-            if (localStorage.getItem('fuel_theme') === 'dark') {
-                document.documentElement.setAttribute('data-theme', 'dark');
-                document.getElementById('theme-icon').className = 'fa-solid fa-sun';
-            }
-
-            generateNextTxNumber();
-            updateLastEntryBanner();
-            setupPWA();
-        });
-
-        function generateNextTxNumber() {
-            let maxNum = 0;
-            const localRecords = JSON.parse(localStorage.getItem('fuel_records_backup') || '[]');
-            localRecords.forEach(r => {
-                const n = parseInt(toUnifiedDigits(r.txNumber));
-                if (!isNaN(n) && n > maxNum) maxNum = n;
-            });
-            document.getElementById('txNumber').value = maxNum + 1;
-        }
-
-        function updateGreeting() {
-            document.getElementById('greeting-title').textContent = `ماذا ستسجل اليوم يا ${currentUser}؟`;
-        }
-
-        function populateDropdowns() {
-            const fuelSelect = document.getElementById('fuelType');
-            fuelSelect.innerHTML = '';
-            appFuelTypes.forEach(f => {
-                const opt = document.createElement('option');
-                opt.value = f.name;
-                opt.textContent = f.name;
-                fuelSelect.appendChild(opt);
-            });
-            updateUnitLabel();
-
-            const benSelect = document.getElementById('beneficiary');
-            benSelect.innerHTML = '';
-            appBeneficiaries.forEach(b => {
-                const opt = document.createElement('option');
-                opt.value = b;
-                opt.textContent = b;
-                benSelect.appendChild(opt);
-            });
-        }
-
-        function updateUnitLabel() {
-            const val = document.getElementById('fuelType').value;
-            const found = appFuelTypes.find(f => f.name === val);
-            const unit = found ? found.unit : 'لتر';
-            document.getElementById('quantity-label').textContent = `الكمية (${unit})`;
-        }
-
-        function openSettingsModal() {
-            renderSettingsLists();
-            document.getElementById('settings-modal').classList.add('show');
-        }
-
-        function closeSettingsModal() {
-            document.getElementById('settings-modal').classList.remove('show');
-            populateDropdowns();
-        }
-
-        function renderSettingsLists() {
-            const uList = document.getElementById('users-tags-list');
-            uList.innerHTML = '';
-            appUsers.forEach(u => {
-                const activeTag = u === currentUser ? ' style="border-color:var(--accent-green); background:var(--accent-green-light); font-weight:700;"' : '';
-                uList.innerHTML += `<div class="settings-tag"${activeTag} onclick="switchUser('${u}')">${u} ${appUsers.length > 1 ? `<button onclick="event.stopPropagation(); deleteUser('${u}')"><i class="fa-solid fa-trash"></i></button>` : ''}</div>`;
-            });
-
-            const bList = document.getElementById('beneficiaries-tags-list');
-            bList.innerHTML = '';
-            appBeneficiaries.forEach(b => {
-                bList.innerHTML += `<div class="settings-tag">${b} <button onclick="deleteBeneficiary('${b}')"><i class="fa-solid fa-trash"></i></button></div>`;
-            });
-
-            const fList = document.getElementById('fuels-tags-list');
-            fList.innerHTML = '';
-            appFuelTypes.forEach(f => {
-                fList.innerHTML += `<div class="settings-tag">${f.name} (${f.unit}) <button onclick="deleteFuelType('${f.name}')"><i class="fa-solid fa-trash"></i></button></div>`;
-            });
-        }
-
-        function addUser() {
-            const input = document.getElementById('new-user-input');
-            const val = input.value.trim();
-            if (val && !appUsers.includes(val)) {
-                appUsers.push(val);
-                localStorage.setItem('fuel_app_users_list', JSON.stringify(appUsers));
-                input.value = '';
-                renderSettingsLists();
-            }
-        }
-
-        function deleteUser(name) {
-            if (appUsers.length <= 1) return alert("يجب أن يبقى مستخدم واحد على الأقل.");
-            appUsers = appUsers.filter(u => u !== name);
-            if (currentUser === name) {
-                currentUser = appUsers[0];
-                localStorage.setItem('fuel_app_user', currentUser);
-                updateGreeting();
-            }
-            localStorage.setItem('fuel_app_users_list', JSON.stringify(appUsers));
-            renderSettingsLists();
-        }
-
-        function switchUser(name) {
-            currentUser = name;
-            localStorage.setItem('fuel_app_user', currentUser);
-            updateGreeting();
-            renderSettingsLists();
-        }
-
-        function addBeneficiary() {
-            const input = document.getElementById('new-beneficiary-input');
-            const val = input.value.trim();
-            if (val && !appBeneficiaries.includes(val)) {
-                appBeneficiaries.push(val);
-                localStorage.setItem('fuel_app_beneficiaries_list', JSON.stringify(appBeneficiaries));
-                input.value = '';
-                renderSettingsLists();
-            }
-        }
-
-        function deleteBeneficiary(name) {
-            appBeneficiaries = appBeneficiaries.filter(b => b !== name);
-            localStorage.setItem('fuel_app_beneficiaries_list', JSON.stringify(appBeneficiaries));
-            renderSettingsLists();
-        }
-
-        function addFuelType() {
-            const nameInput = document.getElementById('new-fuel-name');
-            const unitInput = document.getElementById('new-fuel-unit');
-            const name = nameInput.value.trim();
-            const unit = unitInput.value.trim() || 'لتر';
-            if (name && !appFuelTypes.some(f => f.name === name)) {
-                appFuelTypes.push({ name, unit });
-                localStorage.setItem('fuel_app_fuels_list', JSON.stringify(appFuelTypes));
-                nameInput.value = '';
-                unitInput.value = '';
-                renderSettingsLists();
-            }
-        }
-
-        function deleteFuelType(name) {
-            if (appFuelTypes.length <= 1) return alert("يجب أن يبقى نوع وقود واحد على الأقل.");
-            appFuelTypes = appFuelTypes.filter(f => f.name !== name);
-            localStorage.setItem('fuel_app_fuels_list', JSON.stringify(appFuelTypes));
-            renderSettingsLists();
-        }
-
-        function toggleTheme() {
-            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-            if (isDark) {
-                document.documentElement.removeAttribute('data-theme');
-                localStorage.setItem('fuel_theme', 'light');
-                document.getElementById('theme-icon').className = 'fa-solid fa-moon';
-            } else {
-                document.documentElement.setAttribute('data-theme', 'dark');
-                localStorage.setItem('fuel_theme', 'dark');
-                document.getElementById('theme-icon').className = 'fa-solid fa-sun';
-            }
-        }
-
-        function switchTab(tabName, btnEl) {
-            document.querySelectorAll('.tab-view').forEach(s => s.classList.remove('active'));
-            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById(`tab-${tabName}`).classList.add('active');
-            btnEl.classList.add('active');
-            if (tabName === 'audit' && loadedAuditLogs.length === 0) {
-                loadAuditLogs();
-            }
-        }
-
-        function updateLastEntryBanner() {
-            const last = localStorage.getItem('fuel_last_saved');
-            const banner = document.getElementById('last-entry-text');
-            if (last) {
-                const obj = JSON.parse(last);
-                banner.textContent = `آخر كمية تم إدخالها: ${toUnifiedDigits(obj.quantity)} (${obj.fuelType}) في ${toUnifiedDigits(obj.entryDate)}`;
-            }
-        }
-
-        function handleFormSubmit(e) {
-            e.preventDefault();
-            const entry = {
-                id: 'LOC-' + Date.now(),
-                fuelType: document.getElementById('fuelType').value.trim(),
-                beneficiary: document.getElementById('beneficiary').value.trim(),
-                category: document.getElementById('category').value.trim(),
-                entryDate: toUnifiedDigits(document.getElementById('entryDate').value),
-                trucksCount: Number(toUnifiedDigits(document.getElementById('trucksCount').value)),
-                quantity: Number(toUnifiedDigits(document.getElementById('quantity').value)),
-                txNumber: toUnifiedDigits(document.getElementById('txNumber').value.trim()),
-                notes: document.getElementById('notes').value.trim(),
-                createdBy: currentUser,
-                createdAt: formatUnifiedDateTime()
-            };
-
-            const localRecords = JSON.parse(localStorage.getItem('fuel_records_backup') || '[]');
-            localRecords.unshift(entry);
-            localStorage.setItem('fuel_records_backup', JSON.stringify(localRecords));
-            localStorage.setItem('fuel_last_saved', JSON.stringify(entry));
-            localStorage.removeItem('fuel_form_draft');
-
-            if (db) {
-                try { db.collection('shipments').add(entry); } catch(err){}
-            }
-            if (rtdb) {
-                try { rtdb.ref('shipments').push(entry); } catch(err){}
-            }
-
-            updateLastEntryBanner();
-            
-            // تفريغ الحقول بالكامل لتكون جاهزة للإدخال التالي دون إظهار تنبيه
-            document.getElementById('category').value = '';
-            document.getElementById('trucksCount').value = '';
-            document.getElementById('quantity').value = '';
-            document.getElementById('notes').value = '';
-            generateNextTxNumber();
-            document.getElementById('beneficiary').focus();
-        }
-
-        function setQuickPeriod(type, btn) {
-            document.querySelectorAll('.chip-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-
-            const now = new Date();
-            let fromDate = new Date();
-            let toDate = new Date();
-
-            if (type === 'today') {
-                fromDate = now;
-                toDate = now;
-            } else if (type === 'week') {
-                fromDate.setDate(now.getDate() - 7);
-            } else if (type === 'month') {
-                fromDate = new Date(now.getFullYear(), now.getMonth(), 1);
-            } else if (type === 'prevMonth') {
-                fromDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-                toDate = new Date(now.getFullYear(), now.getMonth(), 0);
-            }
-
-            document.getElementById('filterFrom').value = formatUnifiedDateTime(fromDate).split(' ')[0];
-            document.getElementById('filterTo').value = formatUnifiedDateTime(toDate).split(' ')[0];
-        }
-
-        function normalizeRecord(id, raw) {
-            if (!raw || typeof raw !== 'object') return null;
-            return {
-                id: id || raw.id || ('ID-' + Math.random()),
-                fuelType: raw.fuelType || raw.fuel || raw.type || raw['نوع الوقود'] || 'سولار',
-                beneficiary: raw.beneficiary || raw.entity || raw.client || raw['الجهة المستفيدة'] || '-',
-                category: raw.category || raw.item || raw['الصنف'] || '-',
-                entryDate: toUnifiedDigits(raw.entryDate || raw.date || raw['التاريخ'] || ''),
-                trucksCount: Number(toUnifiedDigits(raw.trucksCount ?? raw.trucks ?? raw['عدد الشاحنات'] ?? 0)),
-                quantity: Number(toUnifiedDigits(raw.quantity ?? raw.amount ?? raw['الكمية'] ?? 0)),
-                txNumber: toUnifiedDigits(raw.txNumber || raw.transactionNumber || raw['رقم المعاملة'] || '-'),
-                notes: raw.notes || raw.note || raw['ملاحظات'] || ''
-            };
-        }
-
-        async function loadReportData(loadAll = false) {
-            const fromVal = toUnifiedDigits(document.getElementById('filterFrom').value);
-            const toVal = toUnifiedDigits(document.getElementById('filterTo').value);
-            const label = document.getElementById('report-period-label');
-            const tbody = document.getElementById('reports-tbody');
-
-            if (!loadAll && (!fromVal || !toVal)) {
-                return alert("يرجى تحديد تاريخ البداية والنهاية أولاً، أو الضغط على عرض الكل.");
-            }
-
-            label.textContent = loadAll ? "الفترة: عرض كافة السجلات" : `الفترة: من ${fromVal} إلى ${toVal}`;
-            document.getElementById('export-timestamp').textContent = `تاريخ ووقت التقرير: ${formatUnifiedDateTime()}`;
-            tbody.innerHTML = `<tr><td colspan="10" class="empty-state"><i class="fa-solid fa-spinner fa-spin"></i> جاري جلب السجلات...</td></tr>`;
-
-            let rawList = [];
-            const localRecords = JSON.parse(localStorage.getItem('fuel_records_backup') || '[]');
-            localRecords.forEach(r => {
-                const norm = normalizeRecord(r.id, r);
-                if (norm) rawList.push(norm);
-            });
-
-            if (db) {
-                const cols = ['shipments', 'records', 'entries', 'fuel_records', 'transactions'];
-                for (const col of cols) {
-                    try {
-                        const snap = await db.collection(col).get();
-                        snap.forEach(doc => {
-                            const norm = normalizeRecord(doc.id, doc.data());
-                            if (norm) rawList.push(norm);
-                        });
-                    } catch(e){}
+            const savedUser = JSON.parse(localStorage.getItem('loggedInUser'));
+            if (savedUser) {
+                const users = JSON.parse(localStorage.getItem('appUsers')) || [];
+                const userInDb = users.find(u => u.id === savedUser.id);
+                if (userInDb) {
+                    currentUser = userInDb;
+                    
+                    document.getElementById('login-screen').classList.add('hidden');
+                    document.getElementById('login-screen').style.display = 'none';
+                    
+                    document.getElementById('main-app').classList.remove('hidden');
+                    document.getElementById('main-app').style.display = 'block';
+                    
+                    document.getElementById('userInfo').classList.remove('hidden');
+                    document.getElementById('userInfo').style.display = 'flex';
+                    document.getElementById('userNameDisplay').innerText = `مرحباً: ${currentUser.name}`;
+                    
+                    setupUIBasedOnRole();
+                    updateSelectOptions();
+                } else {
+                    logout();
                 }
             }
+        };
 
-            if (rtdb) {
-                try {
-                    const snap = await rtdb.ref('shipments').once('value');
-                    const val = snap.val();
-                    if (val) {
-                        Object.entries(val).forEach(([k, v]) => {
-                            const norm = normalizeRecord(k, v);
-                            if (norm) rawList.push(norm);
-                        });
-                    }
-                } catch(e){}
+        async function login() {
+            await loadCloudToLocal();
+            const id = document.getElementById('loginId').value.trim();
+            const pass = document.getElementById('loginPass').value;
+            const users = JSON.parse(localStorage.getItem('appUsers')) || [];
+            
+            const user = users.find(u => u.id === id && u.pass === pass);
+            
+            if (user) {
+                currentUser = user;
+                localStorage.setItem('loggedInUser', JSON.stringify(user)); 
+                
+                document.getElementById('login-screen').classList.add('hidden');
+                document.getElementById('login-screen').style.display = 'none';
+                
+                document.getElementById('main-app').classList.remove('hidden');
+                document.getElementById('main-app').style.display = 'block';
+                
+                document.getElementById('userInfo').classList.remove('hidden');
+                document.getElementById('userInfo').style.display = 'flex';
+                document.getElementById('userNameDisplay').innerText = `مرحباً: ${user.name}`;
+                
+                setupUIBasedOnRole();
+                updateSelectOptions();
+            } else {
+                alert("بيانات الدخول غير صحيحة!");
             }
+        }
 
-            const uniqueMap = new Map();
-            rawList.forEach(item => {
-                const key = `${item.txNumber}_${item.entryDate}_${item.beneficiary}_${item.quantity}`;
-                if (!uniqueMap.has(key)) uniqueMap.set(key, item);
+        function logout() {
+            currentUser = null;
+            localStorage.removeItem('loggedInUser'); 
+            
+            ['input-tab', 'report-tab', 'audit-tab', 'settings-tab'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.classList.add('hidden');
+                    el.style.display = 'none';
+                }
             });
-            let allRecords = Array.from(uniqueMap.values());
 
-            if (!loadAll) {
-                allRecords = allRecords.filter(r => !r.entryDate || (r.entryDate >= fromVal && r.entryDate <= toVal));
-            }
-
-            loadedShipments = allRecords.sort((a, b) => (b.entryDate || '').localeCompare(a.entryDate || ''));
-            applyLocalSearch();
+            document.getElementById('main-app').classList.add('hidden');
+            document.getElementById('main-app').style.display = 'none';
+            
+            document.getElementById('userInfo').classList.add('hidden');
+            document.getElementById('userInfo').style.display = 'none';
+            
+            document.getElementById('login-screen').classList.remove('hidden');
+            document.getElementById('login-screen').style.display = 'block';
+            
+            document.getElementById('loginId').value = '';
+            document.getElementById('loginPass').value = '';
         }
 
-        function applyLocalSearch() {
-            const q = document.getElementById('searchQuery').value.trim().toLowerCase();
-            if (!q) {
-                filteredShipments = [...loadedShipments];
-            } else {
-                filteredShipments = loadedShipments.filter(item =>
-                    (item.beneficiary || '').toLowerCase().includes(q) ||
-                    (item.txNumber || '').toLowerCase().includes(q) ||
-                    (item.fuelType || '').toLowerCase().includes(q) ||
-                    (item.category || '').toLowerCase().includes(q)
-                );
-            }
-            renderReportTable();
-        }
+        function setupUIBasedOnRole() {
+            ['btn-input-tab', 'btn-audit-tab', 'btn-settings-tab'].forEach(id => {
+                const el = document.getElementById(id);
+                if(el) {
+                    el.classList.add('hidden');
+                    el.style.display = 'none';
+                }
+            });
+            
+            const adminCols = document.querySelectorAll('.admin-only');
+            adminCols.forEach(col => {
+                col.classList.add('hidden');
+                col.style.display = 'none';
+            });
 
-        function renderReportTable() {
-            const tbody = document.getElementById('reports-tbody');
-            tbody.innerHTML = '';
-
-            let totalTrucks = 0;
-            let totalDiesel = 0;
-            let totalOther = 0;
-
-            if (filteredShipments.length === 0) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="10" class="empty-state">لا توجد بيانات مدخلة لهذه الفترة</td>
-                    </tr>
-                `;
-            } else {
-                filteredShipments.forEach((row, idx) => {
-                    totalTrucks += Number(row.trucksCount || 0);
-                    if (row.fuelType === 'سولار') {
-                        totalDiesel += Number(row.quantity || 0);
-                    } else {
-                        totalOther += Number(row.quantity || 0);
+            if (currentUser.role === 'admin') {
+                ['btn-input-tab', 'btn-audit-tab', 'btn-settings-tab'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if(el) {
+                        el.classList.remove('hidden');
+                        el.style.display = ''; 
                     }
-
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                        <td>${toUnifiedDigits(idx + 1)}</td>
-                        <td>${toUnifiedDigits(row.txNumber)}</td>
-                        <td>${toUnifiedDigits(row.entryDate)}</td>
-                        <td>${row.beneficiary}</td>
-                        <td>${row.fuelType}</td>
-                        <td>${row.category}</td>
-                        <td>${toUnifiedDigits(row.trucksCount)}</td>
-                        <td>${toUnifiedDigits(Number(row.quantity).toLocaleString('en-US'))}</td>
-                        <td>${row.notes || '-'}</td>
-                        <td class="no-print">
-                            <button onclick="confirmDeleteShipment('${row.id}')" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:1rem;">
-                                <i class="fa-solid fa-trash"></i>
-                            </button>
-                        </td>
-                    `;
-                    tbody.appendChild(tr);
                 });
+                
+                adminCols.forEach(col => {
+                    col.classList.remove('hidden');
+                    col.style.display = ''; 
+                });
+                
+                renderUsersTable();
+                switchTab('input-tab');
+            } else if (currentUser.role === 'entry') {
+                const inputBtn = document.getElementById('btn-input-tab');
+                inputBtn.classList.remove('hidden');
+                inputBtn.style.display = '';
+                switchTab('input-tab');
+            } else {
+                switchTab('report-tab');
+            }
+        }
+
+        function renderUsersTable() {
+            const users = JSON.parse(localStorage.getItem('appUsers')) || [];
+            const tbody = document.getElementById('usersListTable');
+            tbody.innerHTML = users.map(u => `
+                <tr>
+                    <td class="border p-1">${u.id}</td>
+                    <td class="border p-1">${u.name}</td>
+                    <td class="border p-1">${u.role === 'admin' ? 'مدير' : (u.role === 'entry' ? 'مدخل' : 'مستعرض')}</td>
+                    <td class="border p-1">
+                        ${u.id !== 'admin' && u.id !== currentUser.id ? `<button onclick="deleteUser('${u.id}')" class="text-red-600 font-bold">X</button>` : '-'}
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function addUser() {
+            const id = document.getElementById('newUserId').value.trim();
+            const name = document.getElementById('newUserName').value.trim();
+            const pass = document.getElementById('newUserPass').value;
+            const role = document.getElementById('newUserRole').value;
+
+            if(!id || !name || !pass) return alert('أكمل جميع البيانات');
+
+            let users = JSON.parse(localStorage.getItem('appUsers')) || [];
+            if(users.find(u => u.id === id)) return alert('رقم الهوية موجود مسبقاً!');
+
+            users.push({ id, name, pass, role });
+            localStorage.setItem('appUsers', JSON.stringify(users));
+            await saveCloudData('appUsers', users);
+            renderUsersTable();
+            
+            document.getElementById('newUserId').value = '';
+            document.getElementById('newUserName').value = '';
+            document.getElementById('newUserPass').value = '';
+        }
+
+        async function deleteUser(id) {
+            if(confirm("تأكيد حذف المستخدم؟")) {
+                let users = JSON.parse(localStorage.getItem('appUsers')) || [];
+                users = users.filter(u => u.id !== id);
+                localStorage.setItem('appUsers', JSON.stringify(users));
+                await saveCloudData('appUsers', users);
+                renderUsersTable();
+            }
+        }
+
+        async function switchTab(tabId) {
+            await loadCloudToLocal();
+            ['input-tab', 'report-tab', 'audit-tab', 'settings-tab'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.classList.add('hidden');
+                    el.style.display = 'none';
+                }
+            });
+            
+            const activeTab = document.getElementById(tabId);
+            if (activeTab) {
+                activeTab.classList.remove('hidden');
+                activeTab.style.display = 'block';
+            }
+            
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active', 'border-b-4', 'border-blue-600', 'text-blue-600');
+            });
+            const activeBtn = document.getElementById('btn-' + tabId);
+            if(activeBtn) {
+                activeBtn.classList.add('active', 'border-b-4', 'border-blue-600', 'text-blue-600');
             }
 
-            document.getElementById('sum-trucks').textContent = toUnifiedDigits(totalTrucks.toLocaleString('en-US'));
-            document.getElementById('sum-diesel').textContent = toUnifiedDigits(totalDiesel.toLocaleString('en-US'));
-            document.getElementById('sum-other').textContent = toUnifiedDigits(totalOther.toLocaleString('en-US'));
+            if(tabId === 'input-tab' && !document.getElementById('editingTxnId').value) {
+                document.getElementById('dateInput').value = getTodayString();
+                document.getElementById('trucksInput').value = "1";
+            }
+
+            if(tabId === 'report-tab') generateReport();
+            if(tabId === 'audit-tab') generateAuditReport();
+            if(tabId === 'settings-tab') {
+                renderSettingsList('fuelTypes', 'fuelTypesList');
+                renderSettingsList('beneficiaries', 'beneficiariesList');
+            }
         }
 
-        function confirmDeleteShipment(id) {
-            const target = loadedShipments.find(r => r.id === id);
-            if (!target) return;
-
-            openModal(
-                "تأكيد حذف المعاملة",
-                `هل أنت متأكد من حذف الشحنة رقم (${target.txNumber}) الخاصة بـ (${target.beneficiary})؟`,
-                () => executeDeleteShipment(target)
-            );
+        function updateSelectOptions() {
+            const types = JSON.parse(localStorage.getItem('fuelTypes')) || [];
+            const benfs = JSON.parse(localStorage.getItem('beneficiaries')) || [];
+            
+            document.getElementById('typeInput').innerHTML = types.map(t => `<option value="${t}">${t}</option>`).join('');
+            document.getElementById('beneficiaryInput').innerHTML = benfs.map(b => `<option value="${b}">${b}</option>`).join('');
+            document.getElementById('typeFilter').innerHTML = `<option value="الكل">الكل</option>` + types.map(t => `<option value="${t}">${t}</option>`).join('');
+            
+            updateUnitBasedOnType();
         }
 
-        function executeDeleteShipment(target) {
-            closeModal();
-            const auditEntry = {
-                actionType: 'حذف شحنة',
-                txNumber: toUnifiedDigits(target.txNumber),
-                beneficiary: target.beneficiary,
-                quantity: toUnifiedDigits(target.quantity),
-                actionBy: currentUser,
-                actionDate: formatUnifiedDateTime()
-            };
-
-            let localRecords = JSON.parse(localStorage.getItem('fuel_records_backup') || '[]');
-            localRecords = localRecords.filter(r => r.id !== target.id);
-            localStorage.setItem('fuel_records_backup', JSON.stringify(localRecords));
-
-            const localAudit = JSON.parse(localStorage.getItem('fuel_audit_backup') || '[]');
-            localAudit.unshift(auditEntry);
-            localStorage.setItem('fuel_audit_backup', JSON.stringify(localAudit));
-
-            loadedShipments = loadedShipments.filter(r => r.id !== target.id);
-            applyLocalSearch();
-            generateNextTxNumber();
+        function updateUnitBasedOnType() {
+            const typeValue = document.getElementById('typeInput').value || "";
+            document.getElementById('unitInput').value = (typeValue.includes("غاز") || typeValue.includes("الغاز")) ? "طن" : "لتر";
         }
 
-        function loadAuditLogs() {
-            const logs = JSON.parse(localStorage.getItem('fuel_audit_backup') || '[]');
-            loadedAuditLogs = logs;
-            renderAuditTable();
+        function renderSettingsList(key, listId) {
+            const items = JSON.parse(localStorage.getItem(key)) || [];
+            document.getElementById(listId).innerHTML = items.map((item, i) => `
+                <li class="flex justify-between p-2 text-sm"><span>${item}</span>
+                <button onclick="deleteSetting('${key}', ${i})" class="text-red-500 font-bold">X</button></li>
+            `).join('');
         }
 
-        function renderAuditTable() {
-            const q = document.getElementById('auditSearch').value.trim().toLowerCase();
-            const tbody = document.getElementById('audit-tbody');
-            tbody.innerHTML = '';
+        async function addSetting(key, inputId) {
+            const val = document.getElementById(inputId).value.trim();
+            if(!val) return;
+            let items = JSON.parse(localStorage.getItem(key)) || [];
+            if(!items.includes(val)) {
+                items.push(val);
+                localStorage.setItem(key, JSON.stringify(items));
+                await saveCloudData(key, items);
+                document.getElementById(inputId).value = '';
+                renderSettingsList(key, key === 'fuelTypes' ? 'fuelTypesList' : 'beneficiariesList');
+                updateSelectOptions();
+            }
+        }
 
-            const list = loadedAuditLogs.filter(item =>
-                !q ||
-                (item.actionBy || '').toLowerCase().includes(q) ||
-                (item.beneficiary || '').toLowerCase().includes(q) ||
-                (item.actionDate || '').toLowerCase().includes(q)
-            );
-
-            if (list.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="empty-state">لا توجد سجلات محذوفات مطابقة</td></tr>`;
+        async function deleteSetting(key, i) {
+            let items = JSON.parse(localStorage.getItem(key)) || [];
+            const itemToDelete = items[i];
+            
+            let fuelData = JSON.parse(localStorage.getItem('fuelData')) || [];
+            let isUsed = false;
+            
+            if (key === 'fuelTypes') {
+                isUsed = fuelData.some(record => record.type === itemToDelete);
+            } else if (key === 'beneficiaries') {
+                isUsed = fuelData.some(record => record.beneficiary === itemToDelete);
+            }
+            
+            if (isUsed) {
+                alert("لا يمكن حذف هذا العنصر لارتباطه بمعاملات سابقة أو حالية مسجلة في قاعدة البيانات.");
                 return;
             }
 
-            list.forEach((log, i) => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${toUnifiedDigits(i + 1)}</td>
-                    <td>${log.actionType}</td>
-                    <td>${toUnifiedDigits(log.txNumber)}</td>
-                    <td>${log.beneficiary}</td>
-                    <td>${toUnifiedDigits(log.quantity)}</td>
-                    <td>${log.actionBy}</td>
-                    <td>${toUnifiedDigits(log.actionDate)}</td>
+            if(confirm("هل أنت متأكد من الحذف؟")) {
+                items.splice(i, 1);
+                localStorage.setItem(key, JSON.stringify(items));
+                await saveCloudData(key, items);
+                renderSettingsList(key, key === 'fuelTypes' ? 'fuelTypesList' : 'beneficiariesList');
+                updateSelectOptions();
+            }
+        }
+
+        function promptAdminPassword() {
+            const pass = prompt("إجراء إداري: الرجاء إدخال كلمة المرور لاعتماد التعديل أو الحذف:");
+            if(pass === currentUser.pass) return true;
+            alert("كلمة المرور غير صحيحة، تم إلغاء الإجراء.");
+            return false;
+        }
+
+        async function saveData(e) {
+            e.preventDefault();
+            await loadCloudToLocal();
+            const editingId = document.getElementById('editingTxnId').value;
+            let data = JSON.parse(localStorage.getItem('fuelData')) || [];
+            
+            const trucksVal = parseInt(document.getElementById('trucksInput').value) || 1;
+
+            if (editingId) {
+                if(!promptAdminPassword()) return;
+                
+                const oldRecordIndex = data.findIndex(r => r.id === editingId && r.status === 'active');
+                if(oldRecordIndex > -1) {
+                    const oldRecord = data[oldRecordIndex];
+                    
+                    data[oldRecordIndex].isDeleted = true;
+                    data[oldRecordIndex].status = 'edited';
+                    data[oldRecordIndex].actionBy = currentUser.name;
+                    data[oldRecordIndex].actionTime = new Date().toLocaleString('ar-EG');
+                    data[oldRecordIndex].oldData = `${oldRecord.date} | ${oldRecord.beneficiary} | ${oldRecord.type} | ${formatNumber(oldRecord.trucks || 1)} شاحنات | ${formatNumber(oldRecord.quantity)} ${oldRecord.unit}`;
+                    data[oldRecordIndex].newData = `${document.getElementById('dateInput').value} | ${document.getElementById('beneficiaryInput').value} | ${document.getElementById('typeInput').value} | ${formatNumber(trucksVal)} شاحنات | ${formatNumber(document.getElementById('quantityInput').value)} ${document.getElementById('unitInput').value}`;
+                    
+                    const newRecord = {
+                        id: Date.now().toString(),
+                        serialNo: oldRecord.serialNo,
+                        date: document.getElementById('dateInput').value,
+                        beneficiary: document.getElementById('beneficiaryInput').value,
+                        type: document.getElementById('typeInput').value,
+                        trucks: trucksVal,
+                        quantity: parseFloat(document.getElementById('quantityInput').value),
+                        unit: document.getElementById('unitInput').value,
+                        addedBy: currentUser.name,
+                        isDeleted: false,
+                        status: 'active'
+                    };
+                    data.push(newRecord);
+                }
+                alert('تم اعتماد التعديل بنجاح');
+                cancelEdit();
+            } else {
+                const activeTransactions = data.filter(r => !r.isDeleted);
+                const nextSerial = activeTransactions.length + 1;
+
+                const newRecord = {
+                    id: Date.now().toString(),
+                    serialNo: nextSerial,
+                    date: document.getElementById('dateInput').value,
+                    beneficiary: document.getElementById('beneficiaryInput').value,
+                    type: document.getElementById('typeInput').value,
+                    trucks: trucksVal,
+                    quantity: parseFloat(document.getElementById('quantityInput').value),
+                    unit: document.getElementById('unitInput').value,
+                    addedBy: currentUser.name,
+                    isDeleted: false,
+                    status: 'active'
+                };
+                data.push(newRecord);
+                alert('تم الحفظ بنجاح!');
+            }
+
+            localStorage.setItem('fuelData', JSON.stringify(data));
+            await saveCloudData('fuelData', data);
+            document.getElementById('quantityInput').value = "";
+            document.getElementById('trucksInput').value = "1";
+            document.getElementById('dateInput').value = getTodayString();
+        }
+
+        function initiateEdit(txnId) {
+            let data = JSON.parse(localStorage.getItem('fuelData')) || [];
+            const record = data.find(r => r.id === txnId && !r.isDeleted);
+            if(!record) return;
+
+            document.getElementById('editingTxnId').value = record.id;
+            document.getElementById('dateInput').value = record.date;
+            document.getElementById('beneficiaryInput').value = record.beneficiary;
+            document.getElementById('typeInput').value = record.type;
+            document.getElementById('trucksInput').value = record.trucks || 1;
+            document.getElementById('quantityInput').value = record.quantity;
+            document.getElementById('unitInput').value = record.unit;
+            
+            document.getElementById('formTitle').innerText = "تعديل المعاملة رقم: " + (record.serialNo || '-');
+            document.getElementById('formTitle').classList.replace('text-gray-800', 'text-red-600');
+            document.getElementById('submitBtn').innerText = "تحديث واعتماد التعديل";
+            document.getElementById('submitBtn').classList.replace('bg-blue-600', 'bg-red-600');
+            
+            document.getElementById('cancelEditBtn').classList.remove('hidden');
+            document.getElementById('cancelEditBtn').style.display = 'block';
+            
+            switchTab('input-tab');
+        }
+
+        function cancelEdit() {
+            document.getElementById('editingTxnId').value = "";
+            document.getElementById('fuelForm').reset();
+            document.getElementById('dateInput').value = getTodayString();
+            document.getElementById('trucksInput').value = "1";
+            
+            document.getElementById('formTitle').innerText = "تسجيل بيانات جديدة";
+            document.getElementById('formTitle').classList.replace('text-red-600', 'text-gray-800');
+            document.getElementById('submitBtn').innerText = "حفظ البيانات";
+            document.getElementById('submitBtn').classList.replace('bg-red-600', 'bg-blue-600');
+            
+            document.getElementById('cancelEditBtn').classList.add('hidden');
+            document.getElementById('cancelEditBtn').style.display = 'none';
+        }
+
+        async function deleteRecord(txnId) {
+            if(!promptAdminPassword()) return;
+            await loadCloudToLocal();
+
+            let data = JSON.parse(localStorage.getItem('fuelData')) || [];
+            const index = data.findIndex(r => r.id === txnId && !r.isDeleted);
+            if(index > -1) {
+                data[index].isDeleted = true;
+                data[index].status = 'deleted';
+                data[index].actionBy = currentUser.name;
+                data[index].actionTime = new Date().toLocaleString('ar-EG');
+                localStorage.setItem('fuelData', JSON.stringify(data));
+                await saveCloudData('fuelData', data);
+                alert("تم حذف المعاملة (ستظهر في سجل المحذوفات والمعدلات).");
+                generateReport();
+            }
+        }
+
+        async function generateReport() {
+            await loadCloudToLocal();
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            const typeFilter = document.getElementById('typeFilter').value;
+            let data = JSON.parse(localStorage.getItem('fuelData')) || [];
+
+            let periodText = "الفترة: جميع السجلات";
+            if (startDate && endDate) {
+                periodText = `الفترة من: ${startDate}  إلى: ${endDate}`;
+            } else if (startDate) {
+                periodText = `الفترة من: ${startDate}`;
+            } else if (endDate) {
+                periodText = `الفترة حتى: ${endDate}`;
+            }
+            document.getElementById('reportPeriodDisplay').innerText = periodText;
+
+            const activeData = data.filter(item => !item.isDeleted);
+
+            const filteredData = activeData.filter(item => {
+                let passDate = true, passType = true;
+                if (startDate) passDate = passDate && (item.date >= startDate);
+                if (endDate) passDate = passDate && (item.date <= endDate);
+                if (typeFilter !== 'الكل') passType = (item.type === typeFilter);
+                return passDate && passType;
+            });
+
+            const reportBody = document.getElementById('reportTableBody');
+            reportBody.innerHTML = '';
+            filteredData.forEach(item => {
+                let actionButtons = '';
+                if(currentUser && currentUser.role === 'admin') {
+                    actionButtons = `
+                        <td class="border border-gray-300 p-2 admin-only" data-html2canvas-ignore="true">
+                            <button onclick="initiateEdit('${item.id}')" class="text-blue-600 mx-1">✏️</button>
+                            <button onclick="deleteRecord('${item.id}')" class="text-red-600 mx-1">❌</button>
+                        </td>
+                    `;
+                }
+
+                reportBody.innerHTML += `
+                    <tr>
+                        <td class="border border-gray-300 p-2 font-bold text-blue-800">${item.serialNo || '-'}</td>
+                        <td class="border border-gray-300 p-2">${item.date}</td>
+                        <td class="border border-gray-300 p-2">${item.beneficiary}</td>
+                        <td class="border border-gray-300 p-2">${item.type}</td>
+                        <td class="border border-gray-300 p-2 font-semibold">${formatNumber(item.trucks || 1)} شاحنة</td>
+                        <td class="border border-gray-300 p-2" dir="ltr"><span class="font-bold">${formatNumber(item.quantity)}</span> <span class="text-xs text-gray-500">${item.unit||''}</span></td>
+                        ${actionButtons}
+                    </tr>
                 `;
-                tbody.appendChild(tr);
+            });
+
+            // تجميع الكميات وعدد الشاحنات حسب الصنف للمعاملات المفعلة والمفلترة مع تنسيق الأرقام بالفواصل
+            const totals = {};
+            filteredData.forEach(item => {
+                if (totals[item.type] === undefined) {
+                    totals[item.type] = { qty: 0, trucks: 0 };
+                }
+                totals[item.type].qty += item.quantity;
+                totals[item.type].trucks += (parseInt(item.trucks) || 1);
+            });
+
+            const summaryBody = document.getElementById('summaryTableBody');
+            summaryBody.innerHTML = '';
+            
+            for (const [type, dataObj] of Object.entries(totals)) {
+                let displayUnit = (type.includes("غاز") || type.includes("الغاز")) ? "طن" : "لتر";
+                summaryBody.innerHTML += `
+                    <tr>
+                        <td class="border border-gray-300 p-2 font-bold">${type}</td>
+                        <td class="border border-gray-300 p-2 font-bold text-gray-700">${formatNumber(dataObj.trucks)} شاحنة</td>
+                        <td class="border border-gray-300 p-2 text-blue-700 font-bold" dir="ltr">${formatNumber(dataObj.qty)} <span class="text-gray-500 text-sm">${displayUnit}</span></td>
+                    </tr>
+                `;
+            }
+
+            if (Object.keys(totals).length === 0) {
+                summaryBody.innerHTML = `<tr><td colspan="3" class="border border-gray-300 p-2 text-gray-500">لا توجد حركات مسجلة لهذه الفترة</td></tr>`;
+            }
+            
+            updateExportFooter();
+        }
+
+        async function generateAuditReport() {
+            await loadCloudToLocal();
+            let data = JSON.parse(localStorage.getItem('fuelData')) || [];
+            const auditData = data.filter(item => item.isDeleted === true);
+            
+            const tbody = document.getElementById('auditTableBody');
+            tbody.innerHTML = '';
+            
+            auditData.reverse().forEach(item => {
+                let badgeClass = item.status === 'deleted' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800';
+                let actionText = item.status === 'deleted' ? 'حذف نهائي' : 'تعديل معاملة';
+                
+                let detailsHtml = '';
+                if (item.status === 'deleted') {
+                    detailsHtml = `
+                        <strong>الجهة:</strong> ${item.beneficiary} &nbsp;|&nbsp; <strong>الصنف:</strong> ${item.type} &nbsp;|&nbsp; <strong>الشاحنات:</strong> ${formatNumber(item.trucks || 1)} &nbsp;|&nbsp; <strong>الكمية:</strong> ${formatNumber(item.quantity)} ${item.unit} <br>
+                        <span class="text-gray-500">التاريخ الأصلي: ${item.date} &nbsp;|&nbsp; سجلت بواسطة: ${item.addedBy}</span>
+                    `;
+                } else {
+                    detailsHtml = `
+                        <div class="text-red-700 bg-red-50 p-1 rounded mb-1"><strong>قبل التعديل:</strong> ${item.oldData || 'غير متوفر'}</div>
+                        <div class="text-green-700 bg-green-50 p-1 rounded"><strong>بعد التعديل:</strong> ${item.newData || 'غير متوفر'}</div>
+                    `;
+                }
+                
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="border p-2"><span class="px-2 py-1 rounded text-xs font-bold ${badgeClass}">${actionText}</span></td>
+                        <td class="border p-2 font-bold text-blue-900">${item.serialNo || '-'}</td>
+                        <td class="border p-2 text-right text-xs">${detailsHtml}</td>
+                        <td class="border p-2 text-xs text-blue-800 font-semibold" dir="ltr">
+                            ${item.actionBy} <br> ${item.actionTime}
+                        </td>
+                    </tr>
+                `;
             });
         }
 
-        function exportToPDF() {
-            document.getElementById('export-timestamp').textContent = `تاريخ ووقت الاستخراج: ${formatUnifiedDateTime()}`;
-            const element = document.getElementById('printable-report-area');
-            
-            const opt = {
-                margin: [10, 8, 14, 8],
-                filename: `تقرير_المحروقات_${formatUnifiedDateTime().split(' ')[0]}.pdf`,
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: true },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
-            };
-
-            html2pdf().set(opt).from(element).toPdf().get('pdf').then(function (pdf) {
-                const totalPages = pdf.internal.getNumberOfPages();
-                for (let i = 1; i <= totalPages; i++) {
-                    pdf.setPage(i);
-                    pdf.setFontSize(9);
-                    pdf.text(`Page ${toUnifiedDigits(i)} of ${toUnifiedDigits(totalPages)}`, 15, pdf.internal.pageSize.getHeight() - 6);
-                }
-            }).save();
+        function updateExportFooter() {
+            if(currentUser) {
+                const now = new Date();
+                document.getElementById('footerUser').innerText = `طُبع بواسطة: ${currentUser.name}`;
+                document.getElementById('footerTime').innerText = `تاريخ ووقت الاستخراج: ${now.toLocaleString('ar-EG')}`;
+            }
         }
 
-        function exportToExcel(mode) {
-            const wb = XLSX.utils.book_new();
-            wb.Workbook = { Views: [{ RTL: true }] };
-
-            let rows = [];
-            if (mode === 'reports') {
-                rows.push(["م", "رقم المعاملة", "التاريخ", "الجهة المستفيدة", "نوع الوقود", "الصنف", "عدد الشاحنات", "الكمية", "ملاحظات"]);
-                if (filteredShipments.length === 0) {
-                    rows.push(["-", "لا توجد بيانات مدخلة لهذه الفترة", "-", "-", "-", "-", "0", "0", "-"]);
-                } else {
-                    filteredShipments.forEach((r, idx) => {
-                        rows.push([
-                            toUnifiedDigits(idx + 1),
-                            toUnifiedDigits(r.txNumber),
-                            toUnifiedDigits(r.entryDate),
-                            r.beneficiary,
-                            r.fuelType,
-                            r.category,
-                            Number(toUnifiedDigits(r.trucksCount)),
-                            Number(toUnifiedDigits(r.quantity)),
-                            r.notes || "-"
-                        ]);
-                    });
-                }
-                rows.push([]);
-                rows.push(["تاريخ ووقت الاستخراج:", formatUnifiedDateTime()]);
+        function getReportFileName() {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            let periodStr = "";
+            
+            if (startDate && endDate) {
+                periodStr = (startDate === endDate) ? startDate : startDate + "_إلى_" + endDate;
+            } else if (startDate) {
+                periodStr = "من_" + startDate;
+            } else if (endDate) {
+                periodStr = "حتى_" + endDate;
             } else {
-                rows.push(["م", "نوع العملية", "رقم المعاملة", "الجهة", "الكمية", "بواسطة", "تاريخ الإجراء"]);
-                if (loadedAuditLogs.length === 0) {
-                    rows.push(["-", "لا توجد بيانات محذوفات", "-", "-", "0", "-", "-"]);
-                } else {
-                    loadedAuditLogs.forEach((l, idx) => {
-                        rows.push([
-                            toUnifiedDigits(idx + 1),
-                            l.actionType,
-                            toUnifiedDigits(l.txNumber),
-                            l.beneficiary,
-                            toUnifiedDigits(l.quantity),
-                            l.actionBy,
-                            toUnifiedDigits(l.actionDate)
-                        ]);
-                    });
-                }
+                periodStr = getTodayString();
+            }
+            
+            return "تقرير_كميات_" + periodStr;
+        }
+
+        function exportExcel(tableId) {
+            updateExportFooter();
+            const periodText = document.getElementById('reportPeriodDisplay').innerText;
+            const userName = currentUser ? currentUser.name : 'غير معروف';
+            const nowTime = new Date().toLocaleString('ar-EG');
+            const fileName = getReportFileName();
+
+            let wsData = [
+                ["تقرير كمية المحروقات"],
+                [periodText],
+                [""],
+                ["تفاصيل الحركات"],
+                ["رقم المعاملة", "التاريخ", "الجهة المستفيدة", "الصنف", "عدد الشاحنات", "الكمية"]
+            ];
+
+            let activeData = JSON.parse(localStorage.getItem('fuelData')) || [];
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            const typeFilter = document.getElementById('typeFilter').value;
+
+            activeData = activeData.filter(item => !item.isDeleted).filter(item => {
+                let passDate = true, passType = true;
+                if (startDate) passDate = passDate && (item.date >= startDate);
+                if (endDate) passDate = passDate && (item.date <= endDate);
+                if (typeFilter !== 'الكل') passType = (item.type === typeFilter);
+                return passDate && passType;
+            });
+
+            activeData.forEach(item => {
+                wsData.push([item.serialNo || '', item.date, item.beneficiary, item.type, formatNumber(item.trucks || 1) + " شاحنة", `${formatNumber(item.quantity)} ${item.unit || ''}`]);
+            });
+
+            wsData.push([""]);
+            wsData.push(["إجمالي الكمية وعدد الشاحنات حسب الصنف"]);
+            wsData.push(["الصنف", "إجمالي الشاحنات", "إجمالي الكمية"]);
+
+            const totals = {};
+            activeData.forEach(item => {
+                if (totals[item.type] === undefined) totals[item.type] = { qty: 0, trucks: 0 };
+                totals[item.type].qty += item.quantity;
+                totals[item.type].trucks += (parseInt(item.trucks) || 1);
+            });
+
+            for (const [type, dataObj] of Object.entries(totals)) {
+                let displayUnit = (type.includes("غاز") || type.includes("الغاز")) ? "طن" : "لتر";
+                wsData.push([type, `${formatNumber(dataObj.trucks)} شاحنة`, `${formatNumber(dataObj.qty)} ${displayUnit}`]);
             }
 
-            const ws = XLSX.utils.aoa_to_sheet(rows);
-            ws['!cols'] = [
-                { wch: 6 }, { wch: 16 }, { wch: 14 }, { wch: 24 },
-                { wch: 14 }, { wch: 20 }, { wch: 14 }, { wch: 16 }, { wch: 25 }
-            ];
+            wsData.push([""]);
+            wsData.push([`طُبع بواسطة: ${userName}`, `تاريخ ووقت الاستخراج: ${nowTime}`]);
+
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
             XLSX.utils.book_append_sheet(wb, ws, "التقرير");
-            XLSX.writeFile(wb, `تقرير_${formatUnifiedDateTime().split(' ')[0]}.xlsx`);
+            XLSX.writeFile(wb, fileName + ".xlsx");
         }
 
-        function openModal(title, message, onConfirm) {
-            document.getElementById('modal-title').textContent = title;
-            document.getElementById('modal-message').textContent = message;
-            const confirmBtn = document.getElementById('modal-confirm-btn');
-            confirmBtn.onclick = onConfirm;
-            document.getElementById('app-modal').classList.add('show');
+        async function shareExcel(tableId) {
+            updateExportFooter();
+            const periodText = document.getElementById('reportPeriodDisplay').innerText;
+            const userName = currentUser ? currentUser.name : 'غير معروف';
+            const nowTime = new Date().toLocaleString('ar-EG');
+            const fileName = getReportFileName();
+
+            let wsData = [
+                ["تقرير كمية المحروقات"],
+                [periodText],
+                [""],
+                ["تفاصيل الحركات"],
+                ["رقم المعاملة", "التاريخ", "الجهة المستفيدة", "الصنف", "عدد الشاحنات", "الكمية"]
+            ];
+
+            let activeData = JSON.parse(localStorage.getItem('fuelData')) || [];
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            const typeFilter = document.getElementById('typeFilter').value;
+
+            activeData = activeData.filter(item => !item.isDeleted).filter(item => {
+                let passDate = true, passType = true;
+                if (startDate) passDate = passDate && (item.date >= startDate);
+                if (endDate) passDate = passDate && (item.date <= endDate);
+                if (typeFilter !== 'الكل') passType = (item.type === typeFilter);
+                return passDate && passType;
+            });
+
+            activeData.forEach(item => {
+                wsData.push([item.serialNo || '', item.date, item.beneficiary, item.type, formatNumber(item.trucks || 1) + " شاحنة", `${formatNumber(item.quantity)} ${item.unit || ''}`]);
+            });
+
+            wsData.push([""]);
+            wsData.push(["إجمالي الكمية وعدد الشاحنات حسب الصنف"]);
+            wsData.push(["الصنف", "إجمالي الشاحنات", "إجمالي الكمية"]);
+
+            const totals = {};
+            activeData.forEach(item => {
+                if (totals[item.type] === undefined) totals[item.type] = { qty: 0, trucks: 0 };
+                totals[item.type].qty += item.quantity;
+                totals[item.type].trucks += (parseInt(item.trucks) || 1);
+            });
+
+            for (const [type, dataObj] of Object.entries(totals)) {
+                let displayUnit = (type.includes("غاز") || type.includes("الغاز")) ? "طن" : "لتر";
+                wsData.push([type, `${formatNumber(dataObj.trucks)} شاحنة`, `${formatNumber(dataObj.qty)} ${displayUnit}`]);
+            }
+
+            wsData.push([""]);
+            wsData.push([`طُبع بواسطة: ${userName}`, `تاريخ ووقت الاستخراج: ${nowTime}`]);
+
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+            XLSX.utils.book_append_sheet(wb, ws, "التقرير");
+
+            let wbout = XLSX.write(wb, {bookType:'xlsx', type:'array'});
+            let blob = new Blob([wbout], {type: "application/octet-stream"});
+            let file = new File([blob], fileName + ".xlsx", {type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+            
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                try { 
+                    await navigator.share({ files: [file], title: 'تقرير المحروقات', text: 'مرفق التقرير بصيغة Excel' }); 
+                } catch (e) { 
+                    console.error(e); 
+                }
+            } else {
+                XLSX.writeFile(wb, fileName + ".xlsx");
+            }
         }
 
-        function closeModal() {
-            document.getElementById('app-modal').classList.remove('show');
-        }
-
-        function setupPWA() {
-            const manifest = {
-                name: "نظام إدارة المحروقات",
-                short_name: "المحروقات",
-                start_url: ".",
-                display: "standalone",
-                background_color: "#0a1f44",
-                theme_color: "#0a1f44"
+        function exportPDF(tableId) {
+            updateExportFooter();
+            const element = document.getElementById(tableId);
+            const fileName = getReportFileName();
+            const opt = {
+                margin: [0.4, 0.4, 0.6, 0.4],
+                filename: fileName + '.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+                jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' },
+                pagebreak: { mode: ['css', 'legacy'] },
+                callback: function (pdf) {
+                    const totalPages = pdf.internal.getNumberOfPages();
+                    for (let i = 1; i <= totalPages; i++) {
+                        pdf.setPage(i);
+                        pdf.setFont("helvetica", "normal");
+                        pdf.setFontSize(10);
+                        pdf.setTextColor(100, 100, 100);
+                        pdf.text(`Page ${i} of ${totalPages}`, pdf.internal.pageSize.getWidth() - 1.0, pdf.internal.pageSize.getHeight() - 0.3, { align: 'right' });
+                    }
+                }
             };
-            const blob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
-            document.getElementById('pwa-manifest').setAttribute('href', URL.createObjectURL(blob));
+            html2pdf().set(opt).from(element).outputPdf('blob').then(function(pdfBlob) {
+                const blobUrl = URL.createObjectURL(pdfBlob);
+                const a = document.createElement('a');
+                a.href = blobUrl;
+                a.download = fileName + '.pdf';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(blobUrl);
+            });
+        }
+
+        function sharePDF(tableId) {
+            updateExportFooter();
+            const element = document.getElementById(tableId);
+            const fileName = getReportFileName();
+            const opt = { 
+                margin: [0.4, 0.4, 0.6, 0.4], 
+                filename: fileName + '.pdf', 
+                image: { type: 'jpeg', quality: 0.98 }, 
+                html2canvas: { scale: 2, useCORS: true, letterRendering: true }, 
+                jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' },
+                pagebreak: { mode: ['css', 'legacy'] },
+                callback: function (pdf) {
+                    const totalPages = pdf.internal.getNumberOfPages();
+                    for (let i = 1; i <= totalPages; i++) {
+                        pdf.setPage(i);
+                        pdf.setFont("helvetica", "normal");
+                        pdf.setFontSize(10);
+                        pdf.setTextColor(100, 100, 100);
+                        pdf.text(`Page ${i} of ${totalPages}`, pdf.internal.pageSize.getWidth() - 1.0, pdf.internal.pageSize.getHeight() - 0.3, { align: 'right' });
+                    }
+                }
+            };
+            html2pdf().set(opt).from(element).output('blob').then(function(pdfBlob) {
+                const file = new File([pdfBlob], fileName + ".pdf", { type: "application/pdf" });
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    navigator.share({
+                        files: [file],
+                        title: 'تقرير المحروقات',
+                        text: 'مرفق التقرير'
+                    }).catch(function(e) {
+                        const blobUrl = URL.createObjectURL(pdfBlob);
+                        const a = document.createElement('a');
+                        a.href = blobUrl;
+                        a.download = fileName + '.pdf';
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(blobUrl);
+                    });
+                } else {
+                    const blobUrl = URL.createObjectURL(pdfBlob);
+                    const a = document.createElement('a');
+                    a.href = blobUrl;
+                    a.download = fileName + '.pdf';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(blobUrl);
+                }
+            });
         }
     </script>
 </body>
