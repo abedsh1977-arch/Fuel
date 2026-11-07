@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>نظام إدارة المحروقات السحابي</title>
     
-    <!-- PWA Meta Tags (اختصار الشاشة الرئيسية للهاتف) -->
-    <meta name="theme-color" content="#0d254c">
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#0a1f44">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="إدارة المحروقات">
@@ -23,9 +23,9 @@
     <!-- مكتبات Firebase -->
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
 
     <style>
-        /* المتغيرات اللونية - النموذج (أ): الأزرق الكلاسيكي واللمسات الخضراء */
         :root {
             --primary-dark: #0a1f44;
             --primary-blue: #164082;
@@ -46,7 +46,6 @@
             --radius-md: 12px;
         }
 
-        /* الوضع الليلي (Dark Mode) */
         [data-theme="dark"] {
             --primary-dark: #061229;
             --primary-blue: #1e3a8a;
@@ -72,12 +71,11 @@
         body {
             background-color: var(--bg-body);
             color: var(--text-main);
-            padding-bottom: 85px; /* مساحة لشريط التنقل السفلي */
+            padding-bottom: 85px;
             transition: background-color 0.25s, color 0.25s;
             overflow-x: hidden;
         }
 
-        /* ترويسة التطبيق العلوية */
         .app-header {
             background: var(--primary-gradient);
             color: #ffffff;
@@ -144,7 +142,6 @@
             opacity: 0.9;
         }
 
-        /* حاوية الصفحات */
         .container {
             max-width: 700px;
             margin: -18px auto 0;
@@ -167,7 +164,6 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* البطاقات */
         .card {
             background: var(--bg-card);
             border-radius: var(--radius-lg);
@@ -177,7 +173,6 @@
             margin-bottom: 16px;
         }
 
-        /* حقول الإدخال المخصصة للجوال (النموذج أ) */
         .form-group {
             margin-bottom: 12px;
         }
@@ -226,7 +221,6 @@
             text-align: right;
         }
 
-        /* صف رقم المعاملة وزر الإجراء السريع */
         .action-row {
             display: flex;
             gap: 10px;
@@ -248,7 +242,6 @@
             white-space: nowrap;
         }
 
-        /* شريط معلومات آخر عملية */
         .last-entry-banner {
             background: var(--input-bg);
             border: 1px dashed var(--border-color);
@@ -267,7 +260,6 @@
             margin-left: 6px;
         }
 
-        /* الأزرار الرئيسية */
         .btn-main {
             width: 100%;
             background: var(--accent-green);
@@ -283,14 +275,8 @@
             justify-content: center;
             gap: 10px;
             box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);
-            transition: background 0.2s, transform 0.1s;
         }
 
-        .btn-main:active {
-            transform: scale(0.98);
-        }
-
-        /* اختصارات الفترات والفلاتر */
         .quick-periods {
             display: flex;
             gap: 6px;
@@ -354,7 +340,6 @@
             gap: 6px;
         }
 
-        /* مؤشرات الملخص السريع (Summary Cards) */
         .summary-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -384,7 +369,6 @@
             font-weight: 600;
         }
 
-        /* الجداول المتجاوبة وتثبيت الترويسة */
         .table-wrapper {
             max-height: 420px;
             overflow: auto;
@@ -439,7 +423,6 @@
         .btn-pdf { background: #dc2626; color: #fff; }
         .btn-excel { background: #16a34a; color: #fff; }
 
-        /* شريط التنقل السفلي (Bottom Navigation Bar) */
         .bottom-nav {
             position: fixed;
             bottom: 0;
@@ -475,7 +458,6 @@
             font-size: 1.25rem;
             padding: 4px 16px;
             border-radius: 14px;
-            transition: all 0.2s;
         }
 
         .nav-btn.active {
@@ -490,7 +472,7 @@
             background: rgba(22, 64, 130, 0.12);
         }
 
-        /* النوافذ المنبثقة للتأكيد (Modals) */
+        /* المودال الشامل (الإعدادات والتنبيهات) */
         .modal-backdrop {
             position: fixed;
             inset: 0;
@@ -509,31 +491,59 @@
         .modal-card {
             background: var(--bg-card);
             border-radius: var(--radius-lg);
-            max-width: 400px;
+            max-width: 480px;
             width: 100%;
             padding: 20px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            text-align: center;
+            max-height: 85vh;
+            overflow-y: auto;
         }
 
         .modal-card h3 {
-            margin-bottom: 10px;
-            font-size: 1.1rem;
-        }
-
-        .modal-card p {
-            font-size: 0.9rem;
-            color: var(--text-muted);
-            margin-bottom: 18px;
-            line-height: 1.6;
-        }
-
-        .modal-actions {
+            margin-bottom: 12px;
+            font-size: 1.15rem;
             display: flex;
-            gap: 10px;
+            justify-content: space-between;
+            align-items: center;
         }
 
-        /* تنسيق الطباعة المباشرة وتصدير PDF */
+        .settings-section {
+            margin-bottom: 16px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 12px;
+        }
+
+        .settings-section h4 {
+            font-size: 0.95rem;
+            margin-bottom: 8px;
+            color: var(--primary-blue);
+        }
+
+        .settings-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+
+        .settings-tag {
+            background: var(--input-bg);
+            border: 1px solid var(--border-color);
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .settings-tag button {
+            background: none;
+            border: none;
+            color: var(--danger);
+            cursor: pointer;
+        }
+
         @media print {
             body { padding: 0; background: #fff; color: #000; }
             .app-header, .bottom-nav, .no-print { display: none !important; }
@@ -545,7 +555,6 @@
 </head>
 <body>
 
-    <!-- الترويسة التفاعلية -->
     <header class="app-header">
         <div class="header-top">
             <div class="status-badge">
@@ -553,8 +562,8 @@
                 <span id="sync-text">متصل بالسحابة</span>
             </div>
             <div class="header-actions">
-                <button class="icon-btn" onclick="changeUserName()" title="تغيير اسم المستخدم">
-                    <i class="fa-solid fa-user-pen"></i>
+                <button class="icon-btn" onclick="openSettingsModal()" title="إعدادات التطبيق">
+                    <i class="fa-solid fa-gear"></i>
                 </button>
                 <button class="icon-btn" onclick="toggleTheme()" title="الوضع الليلي/النهاري">
                     <i class="fa-solid fa-moon" id="theme-icon"></i>
@@ -569,7 +578,7 @@
 
     <main class="container">
 
-        <!-- ==================== 1. شاشة الإدخال (Single-Screen Flow) ==================== -->
+        <!-- 1. شاشة الإدخال -->
         <section id="tab-entry" class="tab-view active">
             <div class="card">
                 <form id="fuel-form" onsubmit="handleFormSubmit(event)">
@@ -578,12 +587,7 @@
                         <div class="input-pill">
                             <i class="fa-solid fa-gas-pump"></i>
                             <label for="fuelType">نوع الوقود</label>
-                            <select id="fuelType" required enterkeyhint="next">
-                                <option value="سولار">سولار</option>
-                                <option value="بنزين">بنزين</option>
-                                <option value="غاز">غاز</option>
-                                <option value="وقود طائرات">وقود طائرات</option>
-                            </select>
+                            <select id="fuelType" required onchange="updateUnitLabel()" enterkeyhint="next"></select>
                         </div>
                     </div>
 
@@ -591,8 +595,7 @@
                         <div class="input-pill">
                             <i class="fa-solid fa-building-user"></i>
                             <label for="beneficiary">الجهة المستفيدة</label>
-                            <input type="text" id="beneficiary" list="beneficiaries-list" placeholder="اختر أو اكتب الجهة..." required enterkeyhint="next">
-                            <datalist id="beneficiaries-list"></datalist>
+                            <select id="beneficiary" required enterkeyhint="next"></select>
                         </div>
                     </div>
 
@@ -600,7 +603,7 @@
                         <div class="input-pill">
                             <i class="fa-solid fa-sliders"></i>
                             <label for="category">الصنف</label>
-                            <input type="text" id="category" placeholder="مثال: مخصصات تشغيلية / طوارئ" required enterkeyhint="next">
+                            <input type="text" id="category" placeholder="مثال: تشغيلي / طوارئ" required enterkeyhint="next">
                         </div>
                     </div>
 
@@ -623,7 +626,7 @@
                     <div class="form-group">
                         <div class="input-pill">
                             <i class="fa-solid fa-fill-drip"></i>
-                            <label for="quantity">الكمية (لتر)</label>
+                            <label for="quantity" id="quantity-label">الكمية (لتر)</label>
                             <input type="number" id="quantity" inputmode="decimal" step="any" min="1" placeholder="0.00" required enterkeyhint="next">
                         </div>
                     </div>
@@ -632,9 +635,9 @@
                         <div class="input-pill" style="flex: 1;">
                             <i class="fa-solid fa-hashtag"></i>
                             <label for="txNumber">رقم المعاملة</label>
-                            <input type="text" id="txNumber" inputmode="numeric" placeholder="رقم السند/المعاملة" required enterkeyhint="next">
+                            <input type="text" id="txNumber" inputmode="numeric" placeholder="رقم السند" required enterkeyhint="next">
                         </div>
-                        <button type="button" class="btn-repeat" onclick="repeatLastEntry()" title="نسخ بيانات آخر إدخال">
+                        <button type="button" class="btn-repeat" onclick="repeatLastEntry()">
                             <i class="fa-solid fa-rotate-right"></i> تكرار
                         </button>
                     </div>
@@ -643,11 +646,10 @@
                         <div class="input-pill">
                             <i class="fa-solid fa-note-sticky"></i>
                             <label for="notes">بيان / ملاحظات</label>
-                            <input type="text" id="notes" placeholder="اختياري (اسم السائق، رقم الوصل...)" enterkeyhint="done">
+                            <input type="text" id="notes" placeholder="اختياري (اسم السائق...)" enterkeyhint="done">
                         </div>
                     </div>
 
-                    <!-- شريط آخر كمية تم إدخالها -->
                     <div class="last-entry-banner">
                         <span><i class="fa-solid fa-clock-rotate-left"></i> <span id="last-entry-text">آخر كمية تم إدخالها: بانتظار الإدخال</span></span>
                     </div>
@@ -660,14 +662,13 @@
             </div>
         </section>
 
-        <!-- ==================== 2. شاشة التقارير والفلترة الذكية ==================== -->
+        <!-- 2. شاشة التقارير -->
         <section id="tab-reports" class="tab-view">
             <div class="card no-print">
-                <!-- أزرار الاختصارات الزمنية الجاهزة -->
                 <div class="quick-periods">
                     <button type="button" class="chip-btn" onclick="setQuickPeriod('today', this)">اليوم</button>
                     <button type="button" class="chip-btn" onclick="setQuickPeriod('week', this)">آخر أسبوع</button>
-                    <button type="button" class="chip-btn" onclick="setQuickPeriod('month', this)">هذا الشهر</button>
+                    <button type="button" class="chip-btn active" onclick="setQuickPeriod('month', this)">هذا الشهر</button>
                     <button type="button" class="chip-btn" onclick="setQuickPeriod('prevMonth', this)">الشهر السابق</button>
                 </div>
 
@@ -689,9 +690,9 @@
 
                 <div class="form-group">
                     <div class="input-pill">
-                        <i class="fa-solid fa- magnifying-glass"></i>
+                        <i class="fa-solid fa-magnifying-glass"></i>
                         <label>بحث سريع</label>
-                        <input type="text" id="searchQuery" placeholder="ابحث بالجهة، رقم المعاملة، الوقود..." oninput="applyLocalSearch()">
+                        <input type="text" id="searchQuery" placeholder="ابحث بالجهة، رقم المعاملة..." oninput="applyLocalSearch()">
                     </div>
                 </div>
 
@@ -705,7 +706,6 @@
                 </div>
             </div>
 
-            <!-- مؤشرات الملخص السريع -->
             <div class="summary-grid" id="summary-cards">
                 <div class="summary-item">
                     <span class="num" id="sum-trucks">0</span>
@@ -713,15 +713,14 @@
                 </div>
                 <div class="summary-item">
                     <span class="num" id="sum-diesel">0</span>
-                    <span class="lbl">إجمالي السولار (لتر)</span>
+                    <span class="lbl">إجمالي السولار</span>
                 </div>
                 <div class="summary-item">
                     <span class="num" id="sum-other">0</span>
-                    <span class="lbl">بنزين / غاز (لتر)</span>
+                    <span class="lbl">باقي الأنواع</span>
                 </div>
             </div>
 
-            <!-- جدول التقرير ومنطقة التصدير -->
             <div class="card" id="printable-report-area">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
                     <h3 style="font-size:1rem;">كشف حركات المحروقات</h3>
@@ -747,7 +746,7 @@
                         <tbody id="reports-tbody">
                             <tr>
                                 <td colspan="10" class="empty-state">
-                                    اضغط على "عرض بيانات الفترة" أو "عرض الكل" لتحميل السجلات (لتوفير الوقت وتسريع الأداء)
+                                    اضغط على "عرض بيانات الفترة" أو "عرض الكل" لتحميل السجلات
                                 </td>
                             </tr>
                         </tbody>
@@ -770,7 +769,7 @@
             </div>
         </section>
 
-        <!-- ==================== 3. شاشة سجل المحذوفات والمعدلات ==================== -->
+        <!-- 3. شاشة المحذوفات -->
         <section id="tab-audit" class="tab-view">
             <div class="card">
                 <h3 style="font-size:1rem; margin-bottom:10px;">سجل التدقيق والمحذوفات</h3>
@@ -778,7 +777,7 @@
                     <div class="input-pill">
                         <i class="fa-solid fa-filter"></i>
                         <label>تصفية السجل</label>
-                        <input type="text" id="auditSearch" placeholder="ابحث باسم المستخدم، التاريخ، أو الجهة..." oninput="renderAuditTable()">
+                        <input type="text" id="auditSearch" placeholder="ابحث..." oninput="renderAuditTable()">
                     </div>
                 </div>
 
@@ -816,7 +815,6 @@
 
     </main>
 
-    <!-- شريط التنقل السفلي -->
     <nav class="bottom-nav">
         <button class="nav-btn active" onclick="switchTab('entry', this)">
             <i class="fa-solid fa-circle-plus"></i>
@@ -832,24 +830,62 @@
         </button>
     </nav>
 
-    <!-- نافذة التنبيه الذكي (التكرار أو الحذف) -->
+    <!-- نافذة المودال العامة (تنبيهات وتأكيدات) -->
     <div class="modal-backdrop" id="app-modal">
         <div class="modal-card">
             <h3 id="modal-title">تنبيه</h3>
-            <p id="modal-message"></p>
-            <div class="modal-actions">
+            <p id="modal-message" style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 18px; line-height: 1.6;"></p>
+            <div class="modal-actions" style="display: flex; gap: 10px;">
                 <button class="btn-secondary" style="flex:1; background:var(--accent-green);" id="modal-confirm-btn">تأكيد</button>
                 <button class="btn-outline" style="flex:1;" onclick="closeModal()">إلغاء</button>
             </div>
         </div>
     </div>
 
+    <!-- نافذة الإعدادات الكاملة (عبر زر الترس ⚙️) -->
+    <div class="modal-backdrop" id="settings-modal">
+        <div class="modal-card">
+            <h3>
+                <span>إعدادات النظام</span>
+                <button onclick="closeSettingsModal()" style="background:none; border:none; color:var(--text-main); cursor:pointer; font-size:1.2rem;"><i class="fa-solid fa-xmark"></i></button>
+            </h3>
+
+            <!-- إدارة المستخدمين -->
+            <div class="settings-section">
+                <h4>إدارة المستخدمين</h4>
+                <div class="settings-list" id="users-tags-list"></div>
+                <div style="display:flex; gap:6px;">
+                    <input type="text" id="new-user-input" placeholder="اسم المستخدم الجديد..." style="flex:1; padding:8px; border:1px solid var(--border-color); border-radius:8px; background:var(--input-bg); color:var(--text-main);">
+                    <button class="btn-secondary" onclick="addUser()" style="height:auto; padding:0 14px;">إضافة</button>
+                </div>
+            </div>
+
+            <!-- إدارة الجهات المستفيدة -->
+            <div class="settings-section">
+                <h4>إدارة الجهات المستفيدة</h4>
+                <div class="settings-list" id="beneficiaries-tags-list"></div>
+                <div style="display:flex; gap:6px;">
+                    <input type="text" id="new-beneficiary-input" placeholder="اسم الجهة المستفيدة..." style="flex:1; padding:8px; border:1px solid var(--border-color); border-radius:8px; background:var(--input-bg); color:var(--text-main);">
+                    <button class="btn-secondary" onclick="addBeneficiary()" style="height:auto; padding:0 14px;">إضافة</button>
+                </div>
+            </div>
+
+            <!-- إدارة أنواع الوقود ووحدات القياس -->
+            <div class="settings-section">
+                <h4>أنواع الوقود ووحدات القياس</h4>
+                <div class="settings-list" id="fuels-tags-list"></div>
+                <div style="display:flex; gap:6px; margin-bottom:6px;">
+                    <input type="text" id="new-fuel-name" placeholder="اسم الوقود (مثل: بنزين)..." style="flex:1; padding:8px; border:1px solid var(--border-color); border-radius:8px; background:var(--input-bg); color:var(--text-main);">
+                    <input type="text" id="new-fuel-unit" placeholder="الوحدة (مثل: لتر)..." style="width:110px; padding:8px; border:1px solid var(--border-color); border-radius:8px; background:var(--input-bg); color:var(--text-main);">
+                </div>
+                <button class="btn-secondary" onclick="addFuelType()" style="width:100%; height:40px;">إضافة نوع وقود جديد</button>
+            </div>
+
+            <button class="btn-outline" onclick="closeSettingsModal()" style="width:100%;">إغلاق الإعدادات</button>
+        </div>
+    </div>
+
     <script>
-        /* =========================================================================
-           1. إعدادات النظام وتوحيد الأرقام الإنجليزية (0-9) في كافة التواريخ والتقارير
-           ========================================================================= */
-        
-        // تحويل أي أرقام هندية (٠-٩) إلى أرقام نظام موحد (0-9)
         function toUnifiedDigits(str) {
             if (str === null || str === undefined) return '';
             return String(str).replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
@@ -864,29 +900,28 @@
             return toUnifiedDigits(`${yyyy}-${mm}-${dd} ${hh}:${min}`);
         }
 
-        /* =========================================================================
-           2. إعداد قاعدة بيانات Firebase (ضع بيانات firebaseConfig الخاصة بك هنا)
-           ========================================================================= */
+        // إعدادات Firebase الخاصة بك
         const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_PROJECT_ID.appspot.com",
-            messagingSenderId: "YOUR_SENDER_ID",
-            appId: "YOUR_APP_ID"
+            apiKey: "AIzaSyAb6ftQGEVh051Bykyc2jvGzNse9NQzJD8",
+            authDomain: "fuel-app-6d3d4.firebaseapp.com",
+            databaseURL: "https://fuel-app-6d3d4-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "fuel-app-6d3d4",
+            storageBucket: "fuel-app-6d3d4.firebasestorage.app",
+            messagingSenderId: "1004234378863",
+            appId: "1:1004234378863:web:ada2a63463724d9258c79a",
+            measurementId: "G-R9ZTVJ7XH1"
         };
 
         let db = null;
+        let rtdb = null;
         let isCloudConnected = false;
 
         try {
-            if (firebaseConfig.apiKey !== "YOUR_API_KEY") {
-                firebase.initializeApp(firebaseConfig);
-                db = firebase.firestore();
-                isCloudConnected = true;
-            } else {
-                updateSyncIndicator(false, "وضع التخزين المحلي (أضف مفاتيح Firebase)");
-            }
+            firebase.initializeApp(firebaseConfig);
+            try { db = firebase.firestore(); } catch (e) {}
+            try { rtdb = firebase.database(); } catch (e) {}
+            isCloudConnected = true;
+            updateSyncIndicator(true, "متصل بالسحابة (Firebase)");
         } catch (err) {
             updateSyncIndicator(false, "غير متصل بالسحابة");
         }
@@ -898,31 +933,41 @@
             txt.textContent = text;
         }
 
-        /* =========================================================================
-           3. إدارة الحالة، الترحيب التفاعلي، والحفظ التلقائي للمسودات
-           ========================================================================= */
+        // القوائم الإدارية الافتراضية
+        let appUsers = JSON.parse(localStorage.getItem('fuel_app_users_list')) || ['مدير النظام', 'مشرف المخزن', 'مراقب الحركة'];
         let currentUser = localStorage.getItem('fuel_app_user') || 'مدير النظام';
+
+        let appBeneficiaries = JSON.parse(localStorage.getItem('fuel_app_beneficiaries_list')) || ['الجهاد والسيطرة', 'الدفاع المدني', 'الخدمات الطبية', 'الطوارئ العامة'];
+        
+        let appFuelTypes = JSON.parse(localStorage.getItem('fuel_app_fuels_list')) || [
+            { name: 'سولار', unit: 'لتر' },
+            { name: 'بنزين', unit: 'لتر' },
+            { name: 'غاز', unit: 'لتر' },
+            { name: 'وقود طائرات', unit: 'لتر' }
+        ];
+
         let loadedShipments = [];
         let filteredShipments = [];
         let loadedAuditLogs = [];
 
         window.addEventListener('DOMContentLoaded', () => {
             updateGreeting();
+            populateDropdowns();
             document.getElementById('current-date-display').textContent = `تاريخ اليوم: ${formatUnifiedDateTime().split(' ')[0]}`;
             
-            // تعيين تاريخ اليوم افتراضياً في شاشة الإدخال والفلاتر
             const todayStr = formatUnifiedDateTime().split(' ')[0];
             document.getElementById('entryDate').value = todayStr;
-            document.getElementById('filterFrom').value = todayStr;
+            
+            const now = new Date();
+            const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+            document.getElementById('filterFrom').value = formatUnifiedDateTime(firstDayOfMonth).split(' ')[0];
             document.getElementById('filterTo').value = todayStr;
 
-            // استرجاع الوضع الليلي المحفوظ
             if (localStorage.getItem('fuel_theme') === 'dark') {
                 document.documentElement.setAttribute('data-theme', 'dark');
                 document.getElementById('theme-icon').className = 'fa-solid fa-sun';
             }
 
-            // استرجاع المسودة التلقائية وآخر عملية
             restoreDraft();
             updateLastEntryBanner();
             setupAutoDraft();
@@ -933,13 +978,137 @@
             document.getElementById('greeting-title').textContent = `ماذا ستسجل اليوم يا ${currentUser}؟`;
         }
 
-        function changeUserName() {
-            const name = prompt("أدخل اسم المستخدم للترحيب وسجل التدقيق:", currentUser);
-            if (name && name.trim()) {
-                currentUser = name.trim();
+        function populateDropdowns() {
+            // الوقود
+            const fuelSelect = document.getElementById('fuelType');
+            fuelSelect.innerHTML = '';
+            appFuelTypes.forEach(f => {
+                const opt = document.createElement('option');
+                opt.value = f.name;
+                opt.textContent = f.name;
+                fuelSelect.appendChild(opt);
+            });
+            updateUnitLabel();
+
+            // الجهات
+            const benSelect = document.getElementById('beneficiary');
+            benSelect.innerHTML = '';
+            appBeneficiaries.forEach(b => {
+                const opt = document.createElement('option');
+                opt.value = b;
+                opt.textContent = b;
+                benSelect.appendChild(opt);
+            });
+        }
+
+        function updateUnitLabel() {
+            const val = document.getElementById('fuelType').value;
+            const found = appFuelTypes.find(f => f.name === val);
+            const unit = found ? found.unit : 'لتر';
+            document.getElementById('quantity-label').textContent = `الكمية (${unit})`;
+        }
+
+        // لوحة الإعدادات
+        function openSettingsModal() {
+            renderSettingsLists();
+            document.getElementById('settings-modal').classList.add('show');
+        }
+
+        function closeSettingsModal() {
+            document.getElementById('settings-modal').classList.remove('show');
+            populateDropdowns();
+        }
+
+        function renderSettingsLists() {
+            // المستخدمين
+            const uList = document.getElementById('users-tags-list');
+            uList.innerHTML = '';
+            appUsers.forEach(u => {
+                const activeTag = u === currentUser ? ' style="border-color:var(--accent-green); background:var(--accent-green-light); font-weight:700;"' : '';
+                uList.innerHTML += `<div class="settings-tag"${activeTag} onclick="switchUser('${u}')" title="اضغط لتفعيله">${u} ${appUsers.length > 1 ? `<button onclick="event.stopPropagation(); deleteUser('${u}')"><i class="fa-solid fa-trash"></i></button>` : ''}</div>`;
+            });
+
+            // الجهات
+            const bList = document.getElementById('beneficiaries-tags-list');
+            bList.innerHTML = '';
+            appBeneficiaries.forEach(b => {
+                bList.innerHTML += `<div class="settings-tag">${b} <button onclick="deleteBeneficiary('${b}')"><i class="fa-solid fa-trash"></i></button></div>`;
+            });
+
+            // الوقود
+            const fList = document.getElementById('fuels-tags-list');
+            fList.innerHTML = '';
+            appFuelTypes.forEach(f => {
+                fList.innerHTML += `<div class="settings-tag">${f.name} (${f.unit}) <button onclick="deleteFuelType('${f.name}')"><i class="fa-solid fa-trash"></i></button></div>`;
+            });
+        }
+
+        function addUser() {
+            const input = document.getElementById('new-user-input');
+            const val = input.value.trim();
+            if (val && !appUsers.includes(val)) {
+                appUsers.push(val);
+                localStorage.setItem('fuel_app_users_list', JSON.stringify(appUsers));
+                input.value = '';
+                renderSettingsLists();
+            }
+        }
+
+        function deleteUser(name) {
+            if (appUsers.length <= 1) return alert("يجب أن يبقى مستخدم واحد على الأقل.");
+            appUsers = appUsers.filter(u => u !== name);
+            if (currentUser === name) {
+                currentUser = appUsers[0];
                 localStorage.setItem('fuel_app_user', currentUser);
                 updateGreeting();
             }
+            localStorage.setItem('fuel_app_users_list', JSON.stringify(appUsers));
+            renderSettingsLists();
+        }
+
+        function switchUser(name) {
+            currentUser = name;
+            localStorage.setItem('fuel_app_user', currentUser);
+            updateGreeting();
+            renderSettingsLists();
+        }
+
+        function addBeneficiary() {
+            const input = document.getElementById('new-beneficiary-input');
+            const val = input.value.trim();
+            if (val && !appBeneficiaries.includes(val)) {
+                appBeneficiaries.push(val);
+                localStorage.setItem('fuel_app_beneficiaries_list', JSON.stringify(appBeneficiaries));
+                input.value = '';
+                renderSettingsLists();
+            }
+        }
+
+        function deleteBeneficiary(name) {
+            appBeneficiaries = appBeneficiaries.filter(b => b !== name);
+            localStorage.setItem('fuel_app_beneficiaries_list', JSON.stringify(appBeneficiaries));
+            renderSettingsLists();
+        }
+
+        function addFuelType() {
+            const nameInput = document.getElementById('new-fuel-name');
+            const unitInput = document.getElementById('new-fuel-unit');
+            const name = nameInput.value.trim();
+            const unit = unitInput.value.trim() || 'لتر';
+            if (name && !appFuelTypes.some(f => f.name === name)) {
+                appFuelTypes.push({ name, unit });
+                localStorage.setItem('fuel_app_fuels_list', JSON.stringify(appFuelTypes));
+                nameInput.value = '';
+                unitInput.value = '';
+                renderSettingsLists();
+            }
+        }
+
+        function deleteFuelType(name) {
+            if (appFuelTypes.length <= 1) return alert("يجب أن يبقى نوع وقود واحد على الأقل.");
+            appFuelTypes = appFuelTypes.filter(f => f.name !== name);
+            localStorage.setItem('fuel_app_fuels_list', JSON.stringify(appFuelTypes));
+            renderSettingsLists();
         }
 
         function toggleTheme() {
@@ -965,15 +1134,17 @@
             }
         }
 
-        // حفظ المسودة تلقائياً أثناء الكتابة
         function setupAutoDraft() {
             const fields = ['fuelType', 'beneficiary', 'category', 'entryDate', 'trucksCount', 'quantity', 'txNumber', 'notes'];
             fields.forEach(id => {
-                document.getElementById(id).addEventListener('input', () => {
-                    const draft = {};
-                    fields.forEach(f => draft[f] = document.getElementById(f).value);
-                    localStorage.setItem('fuel_form_draft', JSON.stringify(draft));
-                });
+                const el = document.getElementById(id);
+                if (el) {
+                    el.addEventListener('input', () => {
+                        const draft = {};
+                        fields.forEach(f => draft[f] = document.getElementById(f).value);
+                        localStorage.setItem('fuel_form_draft', JSON.stringify(draft));
+                    });
+                }
             });
         }
 
@@ -995,7 +1166,7 @@
             const banner = document.getElementById('last-entry-text');
             if (last) {
                 const obj = JSON.parse(last);
-                banner.textContent = `آخر كمية تم إدخالها: ${toUnifiedDigits(obj.quantity)} لتر (${obj.fuelType}) في ${toUnifiedDigits(obj.entryDate)}`;
+                banner.textContent = `آخر كمية تم إدخالها: ${toUnifiedDigits(obj.quantity)} (${obj.fuelType}) في ${toUnifiedDigits(obj.entryDate)}`;
             }
         }
 
@@ -1003,17 +1174,15 @@
             const last = localStorage.getItem('fuel_last_saved');
             if (!last) return alert("لا توجد عملية سابقة محفوظة لنسخها.");
             const obj = JSON.parse(last);
-            document.getElementById('fuelType').value = obj.fuelType || 'سولار';
-            document.getElementById('beneficiary').value = obj.beneficiary || '';
+            document.getElementById('fuelType').value = obj.fuelType || appFuelTypes[0].name;
+            updateUnitLabel();
+            document.getElementById('beneficiary').value = obj.beneficiary || appBeneficiaries[0];
             document.getElementById('category').value = obj.category || '';
             document.getElementById('trucksCount').value = obj.trucksCount || '';
             document.getElementById('quantity').value = obj.quantity || '';
             document.getElementById('txNumber').focus();
         }
 
-        /* =========================================================================
-           4. حفظ الشحنة مع تنبيه منع التكرار الذكي (استباقي وغير مانع)
-           ========================================================================= */
         async function handleFormSubmit(e) {
             e.preventDefault();
             const entry = {
@@ -1029,7 +1198,6 @@
                 createdAt: formatUnifiedDateTime()
             };
 
-            // فحص التكرار الذكي (نفس التاريخ + الجهة + الصنف)
             const localRecords = JSON.parse(localStorage.getItem('fuel_records_backup') || '[]');
             const isDuplicate = localRecords.some(r =>
                 r.entryDate === entry.entryDate &&
@@ -1054,14 +1222,29 @@
             btn.disabled = true;
 
             try {
-                if (isCloudConnected && db) {
-                    const docRef = await db.collection('shipments').add(entry);
-                    entry.id = docRef.id;
-                } else {
+                let savedToCloud = false;
+
+                if (rtdb) {
+                    try {
+                        const newRef = rtdb.ref('shipments').push();
+                        entry.id = newRef.key;
+                        await newRef.set(entry);
+                        savedToCloud = true;
+                    } catch (e) {}
+                }
+
+                if (db) {
+                    try {
+                        const docRef = await db.collection('shipments').add(entry);
+                        if (!entry.id) entry.id = docRef.id;
+                        savedToCloud = true;
+                    } catch (e) {}
+                }
+
+                if (!savedToCloud && !entry.id) {
                     entry.id = 'LOC-' + Date.now();
                 }
 
-                // حفظ نسخة محلية احتياطية وتحديث آخر عملية
                 const localRecords = JSON.parse(localStorage.getItem('fuel_records_backup') || '[]');
                 localRecords.unshift(entry);
                 localStorage.setItem('fuel_records_backup', JSON.stringify(localRecords));
@@ -1070,12 +1253,10 @@
 
                 updateLastEntryBanner();
 
-                // تفريغ الحقول المتغيرة والانتقال السلس للتسجيل التالي في نفس الشاشة
                 document.getElementById('quantity').value = '';
                 document.getElementById('txNumber').value = '';
                 document.getElementById('notes').value = '';
                 document.getElementById('beneficiary').focus();
-
             } catch (err) {
                 alert("حدث خطأ أثناء الحفظ: " + err.message);
             } finally {
@@ -1083,9 +1264,6 @@
             }
         }
 
-        /* =========================================================================
-           5. الفلترة الذكية، اختصارات الأوقات، وعدم التحميل المسبق
-           ========================================================================= */
         function setQuickPeriod(type, btn) {
             document.querySelectorAll('.chip-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
@@ -1094,7 +1272,10 @@
             let fromDate = new Date();
             let toDate = new Date();
 
-            if (type === 'week') {
+            if (type === 'today') {
+                fromDate = now;
+                toDate = now;
+            } else if (type === 'week') {
                 fromDate.setDate(now.getDate() - 7);
             } else if (type === 'month') {
                 fromDate = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -1107,10 +1288,26 @@
             document.getElementById('filterTo').value = formatUnifiedDateTime(toDate).split(' ')[0];
         }
 
+        function normalizeRecord(id, raw) {
+            if (!raw || typeof raw !== 'object') return null;
+            return {
+                id: id || raw.id || ('ID-' + Math.random()),
+                fuelType: raw.fuelType || raw.fuel || raw.type || raw['نوع الوقود'] || 'سولار',
+                beneficiary: raw.beneficiary || raw.entity || raw.client || raw['الجهة المستفيدة'] || '-',
+                category: raw.category || raw.item || raw['الصنف'] || '-',
+                entryDate: toUnifiedDigits(raw.entryDate || raw.date || raw['التاريخ'] || ''),
+                trucksCount: Number(toUnifiedDigits(raw.trucksCount ?? raw.trucks ?? raw['عدد الشاحنات'] ?? 0)),
+                quantity: Number(toUnifiedDigits(raw.quantity ?? raw.amount ?? raw['الكمية'] ?? 0)),
+                txNumber: toUnifiedDigits(raw.txNumber || raw.transactionNumber || raw['رقم المعاملة'] || '-'),
+                notes: raw.notes || raw.note || raw['ملاحظات'] || ''
+            };
+        }
+
         async function loadReportData(loadAll = false) {
             const fromVal = toUnifiedDigits(document.getElementById('filterFrom').value);
             const toVal = toUnifiedDigits(document.getElementById('filterTo').value);
             const label = document.getElementById('report-period-label');
+            const tbody = document.getElementById('reports-tbody');
 
             if (!loadAll && (!fromVal || !toVal)) {
                 return alert("يرجى تحديد تاريخ البداية والنهاية أولاً، أو الضغط على عرض الكل.");
@@ -1118,22 +1315,57 @@
 
             label.textContent = loadAll ? "الفترة: عرض كافة السجلات" : `الفترة: من ${fromVal} إلى ${toVal}`;
             document.getElementById('export-timestamp').textContent = `تاريخ ووقت التقرير: ${formatUnifiedDateTime()}`;
+            tbody.innerHTML = `<tr><td colspan="10" class="empty-state"><i class="fa-solid fa-spinner fa-spin"></i> جاري جلب البيانات من السحابة...</td></tr>`;
 
             try {
-                let data = [];
-                if (isCloudConnected && db) {
-                    let query = db.collection('shipments');
-                    if (!loadAll) {
-                        query = query.where('entryDate', '>=', fromVal).where('entryDate', '<=', toVal);
+                let rawList = [];
+
+                if (db) {
+                    const collections = ['shipments', 'records', 'entries', 'fuel_records', 'transactions'];
+                    for (const col of collections) {
+                        try {
+                            const snap = await db.collection(col).get();
+                            snap.forEach(doc => {
+                                const norm = normalizeRecord(doc.id, doc.data());
+                                if (norm) rawList.push(norm);
+                            });
+                        } catch (e) {}
                     }
-                    const snap = await query.get();
-                    snap.forEach(doc => data.push({ id: doc.id, ...doc.data() }));
-                } else {
-                    const localRecords = JSON.parse(localStorage.getItem('fuel_records_backup') || '[]');
-                    data = loadAll ? localRecords : localRecords.filter(r => r.entryDate >= fromVal && r.entryDate <= toVal);
                 }
 
-                loadedShipments = data.sort((a, b) => (b.entryDate || '').localeCompare(a.entryDate || ''));
+                if (rtdb) {
+                    try {
+                        const snap = await rtdb.ref('shipments').once('value');
+                        const val = snap.val();
+                        if (val) {
+                            Object.entries(val).forEach(([k, v]) => {
+                                const norm = normalizeRecord(k, v);
+                                if (norm) rawList.push(norm);
+                            });
+                        }
+                    } catch (e) {}
+                }
+
+                if (rawList.length === 0) {
+                    const localRecords = JSON.parse(localStorage.getItem('fuel_records_backup') || '[]');
+                    localRecords.forEach(r => {
+                        const norm = normalizeRecord(r.id, r);
+                        if (norm) rawList.push(norm);
+                    });
+                }
+
+                const uniqueMap = new Map();
+                rawList.forEach(item => {
+                    const key = `${item.txNumber}_${item.entryDate}_${item.beneficiary}_${item.quantity}`;
+                    if (!uniqueMap.has(key)) uniqueMap.set(key, item);
+                });
+                let allRecords = Array.from(uniqueMap.values());
+
+                if (!loadAll) {
+                    allRecords = allRecords.filter(r => !r.entryDate || (r.entryDate >= fromVal && r.entryDate <= toVal));
+                }
+
+                loadedShipments = allRecords.sort((a, b) => (b.entryDate || '').localeCompare(a.entryDate || ''));
                 applyLocalSearch();
             } catch (err) {
                 alert("خطأ أثناء جلب التقارير: " + err.message);
@@ -1164,7 +1396,6 @@
             let totalOther = 0;
 
             if (filteredShipments.length === 0) {
-                // عرض قالب الجدول مع رسالة واضحة بدلاً من صفحة فارغة
                 tbody.innerHTML = `
                     <tr>
                         <td colspan="10" class="empty-state">لا توجد بيانات مدخلة لهذه الفترة</td>
@@ -1205,16 +1436,13 @@
             document.getElementById('sum-other').textContent = toUnifiedDigits(totalOther.toLocaleString('en-US'));
         }
 
-        /* =========================================================================
-           6. الحذف الآمن وتوثيق سجل المحذوفات والمعدلات
-           ========================================================================= */
         function confirmDeleteShipment(id) {
             const target = loadedShipments.find(r => r.id === id);
             if (!target) return;
 
             openModal(
                 "تأكيد حذف المعاملة",
-                `هل أنت متأكد من حذف الشحنة رقم (${target.txNumber}) الخاصة بـ (${target.beneficiary}) بكمية (${target.quantity} لتر)؟ سيتم نقلها لسجل المحذوفات.`,
+                `هل أنت متأكد من حذف الشحنة رقم (${target.txNumber}) الخاصة بـ (${target.beneficiary})؟`,
                 () => executeDeleteShipment(target)
             );
         }
@@ -1231,11 +1459,19 @@
             };
 
             try {
-                if (isCloudConnected && db) {
-                    await db.collection('shipments').doc(target.id).delete();
-                    await db.collection('audit_logs').add(auditEntry);
+                if (db) {
+                    try {
+                        await db.collection('shipments').doc(target.id).delete();
+                        await db.collection('audit_logs').add(auditEntry);
+                    } catch (e) {}
                 }
-                // تحديث النسخة المحلية
+                if (rtdb) {
+                    try {
+                        await rtdb.ref(`shipments/${target.id}`).remove();
+                        await rtdb.ref('audit_logs').push(auditEntry);
+                    } catch (e) {}
+                }
+
                 let localRecords = JSON.parse(localStorage.getItem('fuel_records_backup') || '[]');
                 localRecords = localRecords.filter(r => r.id !== target.id);
                 localStorage.setItem('fuel_records_backup', JSON.stringify(localRecords));
@@ -1254,10 +1490,20 @@
         async function loadAuditLogs() {
             try {
                 let logs = [];
-                if (isCloudConnected && db) {
-                    const snap = await db.collection('audit_logs').get();
-                    snap.forEach(d => logs.push(d.data()));
-                } else {
+                if (db) {
+                    try {
+                        const snap = await db.collection('audit_logs').get();
+                        snap.forEach(d => logs.push(d.data()));
+                    } catch (e) {}
+                }
+                if (rtdb && logs.length === 0) {
+                    try {
+                        const snap = await rtdb.ref('audit_logs').once('value');
+                        const val = snap.val();
+                        if (val) Object.values(val).forEach(v => logs.push(v));
+                    } catch (e) {}
+                }
+                if (logs.length === 0) {
                     logs = JSON.parse(localStorage.getItem('fuel_audit_backup') || '[]');
                 }
                 loadedAuditLogs = logs;
@@ -1297,9 +1543,6 @@
             });
         }
 
-        /* =========================================================================
-           7. تصدير تقارير PDF و Excel الاحترافية (مع معالجة الفترات الفارغة وتوحيد الأرقام)
-           ========================================================================= */
         function exportToPDF() {
             document.getElementById('export-timestamp').textContent = `تاريخ ووقت الاستخراج: ${formatUnifiedDateTime()}`;
             const element = document.getElementById('printable-report-area');
@@ -1309,8 +1552,7 @@
                 filename: `تقرير_المحروقات_${formatUnifiedDateTime().split(' ')[0]}.pdf`,
                 image: { type: 'jpeg', quality: 0.98 },
                 html2canvas: { scale: 2, useCORS: true },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
-                pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
             };
 
             html2pdf().set(opt).from(element).toPdf().get('pdf').then(function (pdf) {
@@ -1325,13 +1567,11 @@
 
         function exportToExcel(mode) {
             const wb = XLSX.utils.book_new();
-            wb.Workbook = { Views: [{ RTL: true }] }; // توجيه الملف من اليمين لليسار
+            wb.Workbook = { Views: [{ RTL: true }] };
 
             let rows = [];
             if (mode === 'reports') {
-                const headers = ["م", "رقم المعاملة", "التاريخ", "الجهة المستفيدة", "نوع الوقود", "الصنف", "عدد الشاحنات", "الكمية (لتر)", "ملاحظات"];
-                rows.push(headers);
-
+                rows.push(["م", "رقم المعاملة", "التاريخ", "الجهة المستفيدة", "نوع الوقود", "الصنف", "عدد الشاحنات", "الكمية", "ملاحظات"]);
                 if (filteredShipments.length === 0) {
                     rows.push(["-", "لا توجد بيانات مدخلة لهذه الفترة", "-", "-", "-", "-", "0", "0", "-"]);
                 } else {
@@ -1352,10 +1592,9 @@
                 rows.push([]);
                 rows.push(["تاريخ ووقت الاستخراج:", formatUnifiedDateTime()]);
             } else {
-                const headers = ["م", "نوع العملية", "رقم المعاملة", "الجهة", "الكمية", "بواسطة", "تاريخ الإجراء"];
-                rows.push(headers);
+                rows.push(["م", "نوع العملية", "رقم المعاملة", "الجهة", "الكمية", "بواسطة", "تاريخ الإجراء"]);
                 if (loadedAuditLogs.length === 0) {
-                    rows.push(["-", "لا توجد بيانات محذوفات لهذه الفترة", "-", "-", "0", "-", "-"]);
+                    rows.push(["-", "لا توجد بيانات محذوفات", "-", "-", "0", "-", "-"]);
                 } else {
                     loadedAuditLogs.forEach((l, idx) => {
                         rows.push([
@@ -1372,19 +1611,14 @@
             }
 
             const ws = XLSX.utils.aoa_to_sheet(rows);
-            // ضبط عرض الأعمدة تلقائياً بشكل احترافي
             ws['!cols'] = [
                 { wch: 6 }, { wch: 16 }, { wch: 14 }, { wch: 24 },
                 { wch: 14 }, { wch: 20 }, { wch: 14 }, { wch: 16 }, { wch: 25 }
             ];
-
-            XLSX.utils.book_append_sheet(wb, ws, mode === 'reports' ? "تقرير المحروقات" : "سجل المحذوفات");
-            XLSX.writeFile(wb, `${mode === 'reports' ? 'تقرير_المحروقات' : 'سجل_المحذوفات'}_${formatUnifiedDateTime().split(' ')[0]}.xlsx`);
+            XLSX.utils.book_append_sheet(wb, ws, "التقرير");
+            XLSX.writeFile(wb, `تقرير_${formatUnifiedDateTime().split(' ')[0]}.xlsx`);
         }
 
-        /* =========================================================================
-           8. النوافذ المنبثقة وميزة تثبيت التطبيق على الشاشة الرئيسية (PWA)
-           ========================================================================= */
         function openModal(title, message, onConfirm) {
             document.getElementById('modal-title').textContent = title;
             document.getElementById('modal-message').textContent = message;
