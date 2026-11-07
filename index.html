@@ -221,25 +221,9 @@
             text-align: right;
         }
 
-        .action-row {
-            display: flex;
-            gap: 10px;
-            align-items: stretch;
-        }
-
-        .btn-repeat {
-            background: var(--accent-green-light);
-            color: var(--accent-green);
-            border: 1.5px solid var(--accent-green);
-            border-radius: var(--radius-md);
-            padding: 0 14px;
-            font-weight: 700;
-            font-size: 0.85rem;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            white-space: nowrap;
+        .input-pill input[readonly] {
+            color: var(--text-muted);
+            cursor: not-allowed;
         }
 
         .last-entry-banner {
@@ -472,7 +456,6 @@
             background: rgba(22, 64, 130, 0.12);
         }
 
-        /* المودال الشامل (الإعدادات والتنبيهات) */
         .modal-backdrop {
             position: fixed;
             inset: 0;
@@ -585,9 +568,17 @@
                     
                     <div class="form-group">
                         <div class="input-pill">
+                            <i class="fa-solid fa-hashtag"></i>
+                            <label for="txNumber">رقم المعاملة</label>
+                            <input type="text" id="txNumber" readonly required style="font-weight: 800; color: var(--accent-green);">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="input-pill">
                             <i class="fa-solid fa-gas-pump"></i>
                             <label for="fuelType">نوع الوقود</label>
-                            <select id="fuelType" required onchange="updateUnitLabel()" enterkeyhint="next"></select>
+                            <select id="fuelType" required onchange="updateUnitLabel()"></select>
                         </div>
                     </div>
 
@@ -595,7 +586,7 @@
                         <div class="input-pill">
                             <i class="fa-solid fa-building-user"></i>
                             <label for="beneficiary">الجهة المستفيدة</label>
-                            <select id="beneficiary" required enterkeyhint="next"></select>
+                            <select id="beneficiary" required></select>
                         </div>
                     </div>
 
@@ -603,7 +594,7 @@
                         <div class="input-pill">
                             <i class="fa-solid fa-sliders"></i>
                             <label for="category">الصنف</label>
-                            <input type="text" id="category" placeholder="مثال: تشغيلي / طوارئ" required enterkeyhint="next">
+                            <input type="text" id="category" placeholder="مثال: تشغيلي / طوارئ" required>
                         </div>
                     </div>
 
@@ -611,7 +602,7 @@
                         <div class="input-pill">
                             <i class="fa-solid fa-calendar-days"></i>
                             <label for="entryDate">التاريخ</label>
-                            <input type="date" id="entryDate" required enterkeyhint="next">
+                            <input type="date" id="entryDate" required>
                         </div>
                     </div>
 
@@ -619,7 +610,7 @@
                         <div class="input-pill">
                             <i class="fa-solid fa-truck-moving"></i>
                             <label for="trucksCount">عدد الشاحنات</label>
-                            <input type="number" id="trucksCount" inputmode="numeric" min="1" placeholder="0" required enterkeyhint="next">
+                            <input type="number" id="trucksCount" inputmode="numeric" min="1" placeholder="0" required>
                         </div>
                     </div>
 
@@ -627,26 +618,15 @@
                         <div class="input-pill">
                             <i class="fa-solid fa-fill-drip"></i>
                             <label for="quantity" id="quantity-label">الكمية (لتر)</label>
-                            <input type="number" id="quantity" inputmode="decimal" step="any" min="1" placeholder="0.00" required enterkeyhint="next">
+                            <input type="number" id="quantity" inputmode="decimal" step="any" min="1" placeholder="0.00" required>
                         </div>
-                    </div>
-
-                    <div class="form-group action-row">
-                        <div class="input-pill" style="flex: 1;">
-                            <i class="fa-solid fa-hashtag"></i>
-                            <label for="txNumber">رقم المعاملة</label>
-                            <input type="text" id="txNumber" inputmode="numeric" placeholder="رقم السند" required enterkeyhint="next">
-                        </div>
-                        <button type="button" class="btn-repeat" onclick="repeatLastEntry()">
-                            <i class="fa-solid fa-rotate-right"></i> تكرار
-                        </button>
                     </div>
 
                     <div class="form-group">
                         <div class="input-pill">
                             <i class="fa-solid fa-note-sticky"></i>
                             <label for="notes">بيان / ملاحظات</label>
-                            <input type="text" id="notes" placeholder="اختياري (اسم السائق...)" enterkeyhint="done">
+                            <input type="text" id="notes" placeholder="اختياري (اسم السائق...)">
                         </div>
                     </div>
 
@@ -656,7 +636,7 @@
 
                     <button type="submit" class="btn-main" id="save-btn">
                         <i class="fa-solid fa-check-double"></i>
-                        <span>حفظ المعاملة والانتقال للتالي</span>
+                        <span>حفظ المعاملة والتالي</span>
                     </button>
                 </form>
             </div>
@@ -746,7 +726,7 @@
                         <tbody id="reports-tbody">
                             <tr>
                                 <td colspan="10" class="empty-state">
-                                    اضغط على "عرض بيانات الفترة" أو "عرض الكل" لتحميل السجلات
+                                    لا توجد بيانات مدخلة لهذه الفترة
                                 </td>
                             </tr>
                         </tbody>
@@ -796,7 +776,7 @@
                         </thead>
                         <tbody id="audit-tbody">
                             <tr>
-                                <td colspan="7" class="empty-state">اضغط لتحديث سجل المحذوفات</td>
+                                <td colspan="7" class="empty-state">لا توجد سجلات محذوفات مطابقة</td>
                             </tr>
                         </tbody>
                     </table>
@@ -830,7 +810,7 @@
         </button>
     </nav>
 
-    <!-- نافذة المودال العامة (تنبيهات وتأكيدات) -->
+    <!-- نافذة المودال العامة -->
     <div class="modal-backdrop" id="app-modal">
         <div class="modal-card">
             <h3 id="modal-title">تنبيه</h3>
@@ -842,7 +822,7 @@
         </div>
     </div>
 
-    <!-- نافذة الإعدادات الكاملة (عبر زر الترس ⚙️) -->
+    <!-- نافذة الإعدادات -->
     <div class="modal-backdrop" id="settings-modal">
         <div class="modal-card">
             <h3>
@@ -850,7 +830,6 @@
                 <button onclick="closeSettingsModal()" style="background:none; border:none; color:var(--text-main); cursor:pointer; font-size:1.2rem;"><i class="fa-solid fa-xmark"></i></button>
             </h3>
 
-            <!-- إدارة المستخدمين -->
             <div class="settings-section">
                 <h4>إدارة المستخدمين</h4>
                 <div class="settings-list" id="users-tags-list"></div>
@@ -860,7 +839,6 @@
                 </div>
             </div>
 
-            <!-- إدارة الجهات المستفيدة -->
             <div class="settings-section">
                 <h4>إدارة الجهات المستفيدة</h4>
                 <div class="settings-list" id="beneficiaries-tags-list"></div>
@@ -870,13 +848,12 @@
                 </div>
             </div>
 
-            <!-- إدارة أنواع الوقود ووحدات القياس -->
             <div class="settings-section">
                 <h4>أنواع الوقود ووحدات القياس</h4>
                 <div class="settings-list" id="fuels-tags-list"></div>
                 <div style="display:flex; gap:6px; margin-bottom:6px;">
-                    <input type="text" id="new-fuel-name" placeholder="اسم الوقود (مثل: بنزين)..." style="flex:1; padding:8px; border:1px solid var(--border-color); border-radius:8px; background:var(--input-bg); color:var(--text-main);">
-                    <input type="text" id="new-fuel-unit" placeholder="الوحدة (مثل: لتر)..." style="width:110px; padding:8px; border:1px solid var(--border-color); border-radius:8px; background:var(--input-bg); color:var(--text-main);">
+                    <input type="text" id="new-fuel-name" placeholder="اسم الوقود..." style="flex:1; padding:8px; border:1px solid var(--border-color); border-radius:8px; background:var(--input-bg); color:var(--text-main);">
+                    <input type="text" id="new-fuel-unit" placeholder="الوحدة..." style="width:110px; padding:8px; border:1px solid var(--border-color); border-radius:8px; background:var(--input-bg); color:var(--text-main);">
                 </div>
                 <button class="btn-secondary" onclick="addFuelType()" style="width:100%; height:40px;">إضافة نوع وقود جديد</button>
             </div>
@@ -900,7 +877,6 @@
             return toUnifiedDigits(`${yyyy}-${mm}-${dd} ${hh}:${min}`);
         }
 
-        // إعدادات Firebase الخاصة بك
         const firebaseConfig = {
             apiKey: "AIzaSyAb6ftQGEVh051Bykyc2jvGzNse9NQzJD8",
             authDomain: "fuel-app-6d3d4.firebaseapp.com",
@@ -933,12 +909,9 @@
             txt.textContent = text;
         }
 
-        // القوائم الإدارية الافتراضية
         let appUsers = JSON.parse(localStorage.getItem('fuel_app_users_list')) || ['مدير النظام', 'مشرف المخزن', 'مراقب الحركة'];
         let currentUser = localStorage.getItem('fuel_app_user') || 'مدير النظام';
-
         let appBeneficiaries = JSON.parse(localStorage.getItem('fuel_app_beneficiaries_list')) || ['الجهاد والسيطرة', 'الدفاع المدني', 'الخدمات الطبية', 'الطوارئ العامة'];
-        
         let appFuelTypes = JSON.parse(localStorage.getItem('fuel_app_fuels_list')) || [
             { name: 'سولار', unit: 'لتر' },
             { name: 'بنزين', unit: 'لتر' },
@@ -950,7 +923,7 @@
         let filteredShipments = [];
         let loadedAuditLogs = [];
 
-        window.addEventListener('DOMContentLoaded', () => {
+        window.addEventListener('DOMContentLoaded', async () => {
             updateGreeting();
             populateDropdowns();
             document.getElementById('current-date-display').textContent = `تاريخ اليوم: ${formatUnifiedDateTime().split(' ')[0]}`;
@@ -968,18 +941,53 @@
                 document.getElementById('theme-icon').className = 'fa-solid fa-sun';
             }
 
+            await generateNextTxNumber();
             restoreDraft();
             updateLastEntryBanner();
             setupAutoDraft();
             setupPWA();
         });
 
+        async function generateNextTxNumber() {
+            let maxNum = 0;
+            const localRecords = JSON.parse(localStorage.getItem('fuel_records_backup') || '[]');
+            localRecords.forEach(r => {
+                const n = parseInt(toUnifiedDigits(r.txNumber));
+                if (!isNaN(n) && n > maxNum) maxNum = n;
+            });
+
+            if (db) {
+                try {
+                    const snap = await db.collection('shipments').get();
+                    snap.forEach(doc => {
+                        const d = doc.data();
+                        const n = parseInt(toUnifiedDigits(d.txNumber));
+                        if (!isNaN(n) && n > maxNum) maxNum = n;
+                    });
+                } catch(e){}
+            }
+
+            if (rtdb) {
+                try {
+                    const snap = await rtdb.ref('shipments').once('value');
+                    const val = snap.val();
+                    if (val) {
+                        Object.values(val).forEach(v => {
+                            const n = parseInt(toUnifiedDigits(v.txNumber));
+                            if (!isNaN(n) && n > maxNum) maxNum = n;
+                        });
+                    }
+                } catch(e){}
+            }
+
+            document.getElementById('txNumber').value = maxNum + 1;
+        }
+
         function updateGreeting() {
             document.getElementById('greeting-title').textContent = `ماذا ستسجل اليوم يا ${currentUser}؟`;
         }
 
         function populateDropdowns() {
-            // الوقود
             const fuelSelect = document.getElementById('fuelType');
             fuelSelect.innerHTML = '';
             appFuelTypes.forEach(f => {
@@ -990,7 +998,6 @@
             });
             updateUnitLabel();
 
-            // الجهات
             const benSelect = document.getElementById('beneficiary');
             benSelect.innerHTML = '';
             appBeneficiaries.forEach(b => {
@@ -1008,7 +1015,6 @@
             document.getElementById('quantity-label').textContent = `الكمية (${unit})`;
         }
 
-        // لوحة الإعدادات
         function openSettingsModal() {
             renderSettingsLists();
             document.getElementById('settings-modal').classList.add('show');
@@ -1020,22 +1026,19 @@
         }
 
         function renderSettingsLists() {
-            // المستخدمين
             const uList = document.getElementById('users-tags-list');
             uList.innerHTML = '';
             appUsers.forEach(u => {
                 const activeTag = u === currentUser ? ' style="border-color:var(--accent-green); background:var(--accent-green-light); font-weight:700;"' : '';
-                uList.innerHTML += `<div class="settings-tag"${activeTag} onclick="switchUser('${u}')" title="اضغط لتفعيله">${u} ${appUsers.length > 1 ? `<button onclick="event.stopPropagation(); deleteUser('${u}')"><i class="fa-solid fa-trash"></i></button>` : ''}</div>`;
+                uList.innerHTML += `<div class="settings-tag"${activeTag} onclick="switchUser('${u}')">${u} ${appUsers.length > 1 ? `<button onclick="event.stopPropagation(); deleteUser('${u}')"><i class="fa-solid fa-trash"></i></button>` : ''}</div>`;
             });
 
-            // الجهات
             const bList = document.getElementById('beneficiaries-tags-list');
             bList.innerHTML = '';
             appBeneficiaries.forEach(b => {
                 bList.innerHTML += `<div class="settings-tag">${b} <button onclick="deleteBeneficiary('${b}')"><i class="fa-solid fa-trash"></i></button></div>`;
             });
 
-            // الوقود
             const fList = document.getElementById('fuels-tags-list');
             fList.innerHTML = '';
             appFuelTypes.forEach(f => {
@@ -1135,7 +1138,7 @@
         }
 
         function setupAutoDraft() {
-            const fields = ['fuelType', 'beneficiary', 'category', 'entryDate', 'trucksCount', 'quantity', 'txNumber', 'notes'];
+            const fields = ['fuelType', 'beneficiary', 'category', 'entryDate', 'trucksCount', 'quantity', 'notes'];
             fields.forEach(id => {
                 const el = document.getElementById(id);
                 if (el) {
@@ -1170,21 +1173,10 @@
             }
         }
 
-        function repeatLastEntry() {
-            const last = localStorage.getItem('fuel_last_saved');
-            if (!last) return alert("لا توجد عملية سابقة محفوظة لنسخها.");
-            const obj = JSON.parse(last);
-            document.getElementById('fuelType').value = obj.fuelType || appFuelTypes[0].name;
-            updateUnitLabel();
-            document.getElementById('beneficiary').value = obj.beneficiary || appBeneficiaries[0];
-            document.getElementById('category').value = obj.category || '';
-            document.getElementById('trucksCount').value = obj.trucksCount || '';
-            document.getElementById('quantity').value = obj.quantity || '';
-            document.getElementById('txNumber').focus();
-        }
-
         async function handleFormSubmit(e) {
             e.preventDefault();
+            await generateNextTxNumber();
+
             const entry = {
                 fuelType: document.getElementById('fuelType').value.trim(),
                 beneficiary: document.getElementById('beneficiary').value.trim(),
@@ -1222,27 +1214,21 @@
             btn.disabled = true;
 
             try {
-                let savedToCloud = false;
+                entry.id = 'LOC-' + Date.now();
+
+                if (db) {
+                    try {
+                        const docRef = await db.collection('shipments').add(entry);
+                        entry.id = docRef.id;
+                    } catch (e) {}
+                }
 
                 if (rtdb) {
                     try {
                         const newRef = rtdb.ref('shipments').push();
                         entry.id = newRef.key;
                         await newRef.set(entry);
-                        savedToCloud = true;
                     } catch (e) {}
-                }
-
-                if (db) {
-                    try {
-                        const docRef = await db.collection('shipments').add(entry);
-                        if (!entry.id) entry.id = docRef.id;
-                        savedToCloud = true;
-                    } catch (e) {}
-                }
-
-                if (!savedToCloud && !entry.id) {
-                    entry.id = 'LOC-' + Date.now();
                 }
 
                 const localRecords = JSON.parse(localStorage.getItem('fuel_records_backup') || '[]');
@@ -1254,9 +1240,11 @@
                 updateLastEntryBanner();
 
                 document.getElementById('quantity').value = '';
-                document.getElementById('txNumber').value = '';
                 document.getElementById('notes').value = '';
+                await generateNextTxNumber();
                 document.getElementById('beneficiary').focus();
+                
+                alert("تم حفظ المعاملة بنجاح وتوليد رقم المعاملة التالي!");
             } catch (err) {
                 alert("حدث خطأ أثناء الحفظ: " + err.message);
             } finally {
@@ -1321,16 +1309,13 @@
                 let rawList = [];
 
                 if (db) {
-                    const collections = ['shipments', 'records', 'entries', 'fuel_records', 'transactions'];
-                    for (const col of collections) {
-                        try {
-                            const snap = await db.collection(col).get();
-                            snap.forEach(doc => {
-                                const norm = normalizeRecord(doc.id, doc.data());
-                                if (norm) rawList.push(norm);
-                            });
-                        } catch (e) {}
-                    }
+                    try {
+                        const snap = await db.collection('shipments').get();
+                        snap.forEach(doc => {
+                            const norm = normalizeRecord(doc.id, doc.data());
+                            if (norm) rawList.push(norm);
+                        });
+                    } catch (e) {}
                 }
 
                 if (rtdb) {
@@ -1346,13 +1331,11 @@
                     } catch (e) {}
                 }
 
-                if (rawList.length === 0) {
-                    const localRecords = JSON.parse(localStorage.getItem('fuel_records_backup') || '[]');
-                    localRecords.forEach(r => {
-                        const norm = normalizeRecord(r.id, r);
-                        if (norm) rawList.push(norm);
-                    });
-                }
+                const localRecords = JSON.parse(localStorage.getItem('fuel_records_backup') || '[]');
+                localRecords.forEach(r => {
+                    const norm = normalizeRecord(r.id, r);
+                    if (norm) rawList.push(norm);
+                });
 
                 const uniqueMap = new Map();
                 rawList.forEach(item => {
@@ -1460,16 +1443,12 @@
 
             try {
                 if (db) {
-                    try {
-                        await db.collection('shipments').doc(target.id).delete();
-                        await db.collection('audit_logs').add(auditEntry);
-                    } catch (e) {}
+                    try { await db.collection('shipments').doc(target.id).delete(); } catch(e){}
+                    try { await db.collection('audit_logs').add(auditEntry); } catch(e){}
                 }
                 if (rtdb) {
-                    try {
-                        await rtdb.ref(`shipments/${target.id}`).remove();
-                        await rtdb.ref('audit_logs').push(auditEntry);
-                    } catch (e) {}
+                    try { await rtdb.ref(`shipments/${target.id}`).remove(); } catch(e){}
+                    try { await rtdb.ref('audit_logs').push(auditEntry); } catch(e){}
                 }
 
                 let localRecords = JSON.parse(localStorage.getItem('fuel_records_backup') || '[]');
@@ -1482,6 +1461,7 @@
 
                 loadedShipments = loadedShipments.filter(r => r.id !== target.id);
                 applyLocalSearch();
+                await generateNextTxNumber();
             } catch (e) {
                 alert("تعذر الحذف: " + e.message);
             }
