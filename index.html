@@ -41,7 +41,6 @@
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f3f4f6; }
         .tab-btn.active { border-bottom: 4px solid #2563eb; color: #2563eb; font-weight: bold; }
         .hidden { display: none !important; }
-        
         th, td { padding: 8px 12px !important; }
         
         @media print {
@@ -99,16 +98,14 @@
         <div class="max-w-2xl mx-auto p-4">
             
             <div id="input-tab" class="hidden" style="display: none;">
-                <div class="bg-white p-6 rounded-lg shadow-md mb-4">
-                    <!-- زر استيراد ملف Excel الجديد عند الإدخال لمنع التكرار -->
-                    <div class="bg-green-50 border border-green-200 p-3 rounded-lg flex items-center justify-between mb-4">
-                        <div>
-                            <span class="text-xs font-bold text-green-900 block">استيراد دفعة بيانات من ملف Excel</span>
-                            <span class="text-[11px] text-gray-600">يتم فحص البيانات وعدم تسجيل أي سطر مكرر</span>
-                        </div>
-                        <input type="file" id="excelFileImporter" accept=".xlsx, .xls" class="hidden" onchange="importExcelFile(event)">
-                        <button type="button" onclick="document.getElementById('excelFileImporter').click()" class="bg-green-600 hover:bg-green-700 text-white text-xs font-bold px-3 py-2 rounded shadow">رفع ملف Excel</button>
+                <!-- زر استيراد ملف Excel في شاشة تسجيل شحنة -->
+                <div class="bg-white p-4 rounded-lg shadow-md mb-4 border border-green-200 bg-green-50 flex items-center justify-between">
+                    <div>
+                        <span class="text-xs font-bold text-green-900 block">استيراد بيانات سابقة من ملف Excel</span>
+                        <span class="text-[11px] text-gray-600">سيتم فحص الملف وإضافة السجلات غير الموجودة فقط (بدون تكرار)</span>
                     </div>
+                    <input type="file" id="excelFileImporter" accept=".xlsx, .xls" class="hidden" onchange="importExcelFile(event)">
+                    <button type="button" onclick="document.getElementById('excelFileImporter').click()" class="bg-green-600 hover:bg-green-700 text-white text-xs font-bold px-4 py-2 rounded shadow">رفع ملف Excel</button>
                 </div>
 
                 <div class="bg-white p-6 rounded-lg shadow-md">
@@ -754,7 +751,7 @@
             document.getElementById('dateInput').value = getTodayString();
         }
 
-        // --- دالة استيراد ملف Excel مع منع التكرار ---
+        // --- دالة استيراد ملف Excel مع منع التكرار المطلق ---
         async function importExcelFile(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -788,7 +785,7 @@
                         let cleanQty = parseFloat(String(qtyStr).replace(/,/g, '').replace(/[^0-9.]/g, '')) || 0;
                         let unit = String(qtyStr).includes('طن') ? 'طن' : 'لتر';
 
-                        // التحقق من عدم وجود السجل مسبقاً لمنع التكرار
+                        // الفحص الدقيق لمنع تكرار أي سجل موجود مسبقاً
                         let isDuplicate = existingData.some(item => 
                             item.date === String(date) && 
                             item.beneficiary === String(beneficiary) && 
@@ -819,7 +816,6 @@
                     await saveCloudData('fuelData', existingData);
 
                     alert(`تم استيراد الملف بنجاح! تمت إضافة ${addedCount} سجل جديد بدون تكرار البيانات.`);
-                    generateReport();
                 } catch (err) {
                     console.error(err);
                     alert("حدث خطأ أثناء قراءة ملف الـ Excel.");
