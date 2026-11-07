@@ -143,6 +143,7 @@
                 <div class="bg-white p-4 rounded-lg shadow-md mb-4">
                     <h2 class="text-lg font-semibold mb-3 border-b pb-2">فلترة واستيراد التقارير</h2>
                     
+                    <!-- زر استيراد ملف Excel مع منع التكرار -->
                     <div class="mb-4 bg-blue-50 border border-blue-200 p-3 rounded-lg flex items-center justify-between">
                         <div>
                             <span class="text-xs font-bold text-blue-900 block">استيراد بيانات سابقة من ملف Excel</span>
@@ -357,6 +358,9 @@
                 beneficiaries = ["UNOPS"];
             }
 
+            // تنظيف التكرار من مصفوفة المستخدمين محلياً
+            users = Array.from(new Map(users.map(u => [u.id, u])).values());
+
             const cloudUsers = await getCloudData('appUsers');
             const cloudFuelTypes = await getCloudData('fuelTypes');
             const cloudBeneficiaries = await getCloudData('beneficiaries');
@@ -389,12 +393,16 @@
                 await saveCloudData('fuelData', finalFuelData);
             }
 
+            // مزامنة وتنظيف القوائم
             ['appUsers', 'fuelTypes', 'beneficiaries'].forEach(async (key) => {
                 let localVal = JSON.parse(localStorage.getItem(key)) || [];
                 let cloudVal = await getCloudData(key) || [];
                 if (cloudVal && !Array.isArray(cloudVal)) cloudVal = Object.values(cloudVal);
                 
-                const merged = [...new Set([...localVal, ...(Array.isArray(cloudVal) ? cloudVal : [])])];
+                let merged = [...new Set([...localVal, ...(Array.isArray(cloudVal) ? cloudVal : [])])];
+                if(key === 'appUsers') {
+                    merged = Array.from(new Map(merged.map(u => [u.id, u])).values());
+                }
                 localStorage.setItem(key, JSON.stringify(merged));
                 await saveCloudData(key, merged);
             });
@@ -526,9 +534,10 @@
             }
         }
 
-        // تم إصلاح تكرار الجدول جذرياً بتفريغه أولاً
+        // تفريغ الجدول تماماً وإزالة التكرار
         function renderUsersTable() {
-            const users = JSON.parse(localStorage.getItem('appUsers')) || [];
+            let users = JSON.parse(localStorage.getItem('appUsers')) || [];
+            users = Array.from(new Map(users.map(u => [u.id, u])).values());
             const tbody = document.getElementById('usersListTable');
             if(tbody) {
                 tbody.innerHTML = ""; 
@@ -557,6 +566,7 @@
             if(users.find(u => u.id === id)) return alert('رقم الهوية موجود مسبقاً!');
 
             users.push({ id, name, pass, role });
+            users = Array.from(new Map(users.map(u => [u.id, u])).values());
             localStorage.setItem('appUsers', JSON.stringify(users));
             await saveCloudData('appUsers', users);
             renderUsersTable();
@@ -822,7 +832,7 @@
             }
         }
 
-        // دالة استيراد ملف Excel مع منع تكرار السجلات
+        // استيراد ملف Excel القديم مع منع التكرار
         async function importExcelFile(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -1044,7 +1054,7 @@
             return "تقرير_كميات_" + periodStr;
         }
 
-        // دالة تصدير Excel مطابقة تماماً لتنسيق الـ PDF (بدءاً من رقم المعاملة وانتهاءً بالكمية)
+        // دالة تصدير Excel مطابقة تماماً لتنسيق الـ PDF
         function exportExcel(tableId) {
             updateExportFooter();
             const periodText = document.getElementById('reportPeriodDisplay').innerText;
@@ -1105,9 +1115,7 @@
 
             const wb = XLSX.utils.book_new();
             const ws = XLSX.utils.aoa_to_sheet(wsData);
-            
             ws['!rtl'] = true;
-
             XLSX.utils.book_append_sheet(wb, ws, "التقرير");
             XLSX.writeFile(wb, fileName + ".xlsx");
         }
