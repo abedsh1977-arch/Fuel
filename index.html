@@ -98,16 +98,6 @@
         <div class="max-w-2xl mx-auto p-4">
             
             <div id="input-tab" class="hidden" style="display: none;">
-                <!-- زر استيراد ملف Excel في شاشة تسجيل شحنة -->
-                <div class="bg-white p-4 rounded-lg shadow-md mb-4 border border-green-200 bg-green-50 flex items-center justify-between">
-                    <div>
-                        <span class="text-xs font-bold text-green-900 block">استيراد بيانات سابقة من ملف Excel</span>
-                        <span class="text-[11px] text-gray-600">سيتم فحص الملف وإضافة السجلات غير الموجودة فقط (بدون تكرار)</span>
-                    </div>
-                    <input type="file" id="excelFileImporter" accept=".xlsx, .xls" class="hidden" onchange="importExcelFile(event)">
-                    <button type="button" onclick="document.getElementById('excelFileImporter').click()" class="bg-green-600 hover:bg-green-700 text-white text-xs font-bold px-4 py-2 rounded shadow">رفع ملف Excel</button>
-                </div>
-
                 <div class="bg-white p-6 rounded-lg shadow-md">
                     <h2 id="formTitle" class="text-lg font-semibold mb-4 border-b pb-2">تسجيل بيانات جديدة</h2>
                     <form id="fuelForm" onsubmit="saveData(event)">
@@ -250,6 +240,16 @@
             </div>
 
             <div id="settings-tab" class="hidden" style="display: none;">
+                <!-- زر استيراد ملف Excel في صفحة الإعدادات -->
+                <div class="bg-white p-4 rounded-lg shadow-md mb-4 border-l-4 border-green-600 bg-green-50 flex items-center justify-between">
+                    <div>
+                        <h2 class="text-sm font-semibold text-green-900 mb-1">استيراد البيانات من ملف Excel</h2>
+                        <span class="text-xs text-gray-600">سيتم فحص البيانات وعدم تسجيل أي سطر مكرر منعاً لأي خلل</span>
+                    </div>
+                    <input type="file" id="excelFileImporter" accept=".xlsx, .xls" class="hidden" onchange="importExcelFile(event)">
+                    <button type="button" onclick="document.getElementById('excelFileImporter').click()" class="bg-green-600 hover:bg-green-700 text-white text-xs font-bold px-4 py-2 rounded shadow shrink-0">اختيار ورفع ملف Excel</button>
+                </div>
+
                 <div class="bg-white p-4 rounded-lg shadow-md mb-4 border-l-4 border-blue-600">
                     <h2 class="text-lg font-semibold mb-3 border-b pb-2">إدارة المستخدمين (المدير فقط)</h2>
                     <div class="grid grid-cols-2 gap-2 mb-3 text-sm">
@@ -751,7 +751,7 @@
             document.getElementById('dateInput').value = getTodayString();
         }
 
-        // --- دالة استيراد ملف Excel مع منع التكرار المطلق ---
+        // --- دالة استيراد ملف Excel في الإعدادات مع منع تكرار السجلات تماماً ---
         async function importExcelFile(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -785,7 +785,7 @@
                         let cleanQty = parseFloat(String(qtyStr).replace(/,/g, '').replace(/[^0-9.]/g, '')) || 0;
                         let unit = String(qtyStr).includes('طن') ? 'طن' : 'لتر';
 
-                        // الفحص الدقيق لمنع تكرار أي سجل موجود مسبقاً
+                        // التحقق الدقيق لمنع تكرار المعاملة بناءً على التاريخ والجهة والكمية والصنف
                         let isDuplicate = existingData.some(item => 
                             item.date === String(date) && 
                             item.beneficiary === String(beneficiary) && 
@@ -815,7 +815,8 @@
                     localStorage.setItem('fuelData', JSON.stringify(existingData));
                     await saveCloudData('fuelData', existingData);
 
-                    alert(`تم استيراد الملف بنجاح! تمت إضافة ${addedCount} سجل جديد بدون تكرار البيانات.`);
+                    alert(`تم استيراد الملف بنجاح! تمت إضافة ${addedCount} سجل جديد بدون تكرار أي بيانات سابقة.`);
+                    generateReport();
                 } catch (err) {
                     console.error(err);
                     alert("حدث خطأ أثناء قراءة ملف الـ Excel.");
