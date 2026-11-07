@@ -159,4 +159,1090 @@
                             <input type="date" id="endDate" class="w-full border p-2 rounded text-xs">
                         </div>
                     </div>
-                    <button onclick="
+                    <button onclick="generateReport()" class="w-full bg-gray-800 text-white font-bold py-2 rounded mb-2 hover:bg-gray-900">تحديث التقرير (عرض الكل)</button>
+                    
+                    <div class="grid grid-cols-2 gap-2 mt-4">
+                        <button onclick="exportExcel('printable-report')" class="bg-green-600 text-white text-sm font-bold py-2 rounded">تنزيل Excel</button>
+                        <button onclick="shareExcel('printable-report')" class="bg-green-500 text-white text-sm font-bold py-2 rounded">مشاركة Excel</button>
+                        <button onclick="exportPDF('printable-report')" class="bg-red-600 text-white text-sm font-bold py-2 rounded">تنزيل PDF</button>
+                        <button onclick="sharePDF('printable-report')" class="bg-red-500 text-white text-sm font-bold py-2 rounded">مشاركة PDF</button>
+                    </div>
+                </div>
+
+                <div id="printable-report" class="bg-white p-6 rounded-lg shadow-md mt-4 border border-gray-200">
+                    <div class="text-center border-b-2 border-blue-600 pb-4 mb-4">
+                        <h2 class="font-bold text-xl text-blue-900 mb-2">تقرير كمية المحروقات</h2>
+                        <p id="reportPeriodDisplay" class="text-sm text-gray-700 font-semibold"></p>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <h3 class="font-bold text-sm mb-2 text-gray-700">تفاصيل الحركات</h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-xs text-center border-collapse border border-gray-300">
+                                <thead>
+                                    <tr class="bg-blue-50 text-blue-900">
+                                        <th class="border border-gray-300 p-2">رقم المعاملة</th>
+                                        <th class="border border-gray-300 p-2">التاريخ</th>
+                                        <th class="border border-gray-300 p-2">الجهة المستفيدة</th>
+                                        <th class="border border-gray-300 p-2">الصنف</th>
+                                        <th class="border border-gray-300 p-2">عدد الشاحنات</th>
+                                        <th class="border border-gray-300 p-2">الكمية</th>
+                                        <th class="border border-gray-300 p-2 admin-only hidden" data-html2canvas-ignore="true">إجراء</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="reportTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <h3 class="font-bold text-sm mb-2 text-blue-800">إجمالي الكمية وعدد الشاحنات حسب الصنف</h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-xs text-center border-collapse border border-gray-300">
+                                <thead>
+                                    <tr class="bg-gray-100 text-gray-800">
+                                        <th class="border border-gray-300 p-2 w-1/3">الصنف</th>
+                                        <th class="border border-gray-300 p-2 w-1/3">إجمالي الشاحنات</th>
+                                        <th class="border border-gray-300 p-2 w-1/3">إجمالي الكمية</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="summaryTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="mt-8 border-t border-gray-300 pt-4 text-xs text-gray-600">
+                        <div class="flex justify-between items-center">
+                            <span id="footerUser" class="font-bold"></span>
+                            <span id="footerTime" dir="ltr" class="font-bold"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="audit-tab" class="hidden" style="display: none;">
+                <div class="bg-white p-4 rounded-lg shadow-md mb-4">
+                    <h2 class="text-lg font-semibold mb-3 border-b pb-2 text-red-600">سجل المعاملات المحذوفة والمعدلة</h2>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-xs text-center border-collapse border border-gray-300">
+                            <thead>
+                                <tr class="bg-gray-200">
+                                    <th class="border p-1">نوع الإجراء</th>
+                                    <th class="border p-1">رقم المعاملة</th>
+                                    <th class="border p-1">تفاصيل المعاملة (قبل وبعد)</th>
+                                    <th class="border p-1">بواسطة / الوقت</th>
+                                </tr>
+                            </thead>
+                            <tbody id="auditTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="settings-tab" class="hidden" style="display: none;">
+                <!-- زر استيراد ملف Excel في صفحة الإعدادات -->
+                <div class="bg-white p-4 rounded-lg shadow-md mb-4 border-l-4 border-green-600 bg-green-50 flex items-center justify-between">
+                    <div>
+                        <h2 class="text-sm font-semibold text-green-900 mb-1">استيراد البيانات من ملف Excel</h2>
+                        <span class="text-xs text-gray-600">سيتم فحص البيانات وعدم تسجيل أي سطر مكرر منعاً لأي خلل</span>
+                    </div>
+                    <input type="file" id="excelFileImporter" accept=".xlsx, .xls" class="hidden" onchange="importExcelFile(event)">
+                    <button type="button" onclick="document.getElementById('excelFileImporter').click()" class="bg-green-600 hover:bg-green-700 text-white text-xs font-bold px-4 py-2 rounded shadow shrink-0">اختيار ورفع ملف Excel</button>
+                </div>
+
+                <div class="bg-white p-4 rounded-lg shadow-md mb-4 border-l-4 border-blue-600">
+                    <h2 class="text-lg font-semibold mb-3 border-b pb-2">إدارة المستخدمين (المدير فقط)</h2>
+                    <div class="grid grid-cols-2 gap-2 mb-3 text-sm">
+                        <input type="text" id="newUserId" placeholder="رقم الهوية (اسم الدخول)" class="border p-2 rounded">
+                        <input type="text" id="newUserName" placeholder="الاسم الكامل" class="border p-2 rounded">
+                        <input type="password" id="newUserPass" placeholder="كلمة المرور" class="border p-2 rounded">
+                        <select id="newUserRole" class="border p-2 rounded">
+                            <option value="viewer">مستعرض (تقارير فقط)</option>
+                            <option value="entry">مدخل بيانات</option>
+                            <option value="admin">مدير نظام</option>
+                        </select>
+                    </div>
+                    <button onclick="addUser()" class="w-full bg-blue-600 text-white font-bold py-2 rounded mb-3">إضافة مستخدم</button>
+                    
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-xs text-center border-collapse border">
+                            <thead class="bg-gray-100">
+                                <tr>
+                                    <th class="border p-1">الهوية</th>
+                                    <th class="border p-1">الاسم</th>
+                                    <th class="border p-1">الصلاحية</th>
+                                    <th class="border p-1">حذف</th>
+                                </tr>
+                            </thead>
+                            <tbody id="usersListTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 rounded-lg shadow-md mb-4">
+                    <h2 class="text-sm font-semibold mb-2">إدارة الجهات المستفيدة</h2>
+                    <div class="flex gap-2 mb-2">
+                        <input type="text" id="newBeneficiary" placeholder="اسم الجهة" class="w-full border p-2 rounded text-sm">
+                        <button onclick="addSetting('beneficiaries', 'newBeneficiary')" class="bg-gray-800 text-white px-3 rounded text-sm shrink-0">إضافة</button>
+                    </div>
+                    <ul id="beneficiariesList" class="divide-y border rounded max-h-32 overflow-y-auto"></ul>
+                </div>
+
+                <div class="bg-white p-4 rounded-lg shadow-md">
+                    <h2 class="text-sm font-semibold mb-2">إدارة أنواع الوقود</h2>
+                    <div class="flex gap-2 mb-2">
+                        <input type="text" id="newFuelType" placeholder="نوع الوقود" class="w-full border p-2 rounded text-sm">
+                        <button onclick="addSetting('fuelTypes', 'newFuelType')" class="bg-gray-800 text-white px-3 rounded text-sm shrink-0">إضافة</button>
+                    </div>
+                    <ul id="fuelTypesList" class="divide-y border rounded max-h-32 overflow-y-auto"></ul>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        let currentUser = null;
+
+        function formatNumber(num) {
+            if (num === undefined || num === null || isNaN(num)) return "0";
+            return Number(num).toLocaleString('en-US');
+        }
+
+        function getTodayString() {
+            const d = new Date();
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        async function getCloudData(path) {
+            if (!window.fbDb) return null;
+            try {
+                const snapshot = await window.fbGet(window.fbChild(window.fbRef(window.fbDb), path));
+                if (!snapshot.exists()) return null;
+                let val = snapshot.val();
+                if (val && typeof val === 'object' && !Array.isArray(val)) {
+                    val = Object.values(val);
+                }
+                return val;
+            } catch (e) {
+                console.error(e);
+                return null;
+            }
+        }
+
+        async function saveCloudData(path, data) {
+            if (!window.fbDb) return;
+            try {
+                await window.fbSet(window.fbRef(window.fbDb, path), data);
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        async function syncLocalToCloud() {
+            let users = JSON.parse(localStorage.getItem('appUsers')) || [];
+            let fuelTypes = JSON.parse(localStorage.getItem('fuelTypes')) || [];
+            let beneficiaries = JSON.parse(localStorage.getItem('beneficiaries')) || [];
+
+            if(users.length === 0) {
+                users.push({ id: 'admin', name: 'مدير النظام الافتراضي', pass: 'admin', role: 'admin' });
+            }
+            if (!users.find(u => u.id === '802838904')) {
+                users.push({ id: '802838904', name: 'محمد حسن عبد الله', pass: '802838904', role: 'admin' });
+            }
+            if (fuelTypes.length === 0) {
+                fuelTypes = ["الغاز", "سولار تجاري", "سولار مؤسسات", "بنزين تجاري", "بنزين مؤسسات"];
+            }
+            if (beneficiaries.length === 0) {
+                beneficiaries = ["UNOPS"];
+            }
+
+            const cloudUsers = await getCloudData('appUsers');
+            const cloudFuelTypes = await getCloudData('fuelTypes');
+            const cloudBeneficiaries = await getCloudData('beneficiaries');
+
+            if (!cloudUsers) await saveCloudData('appUsers', users);
+            if (!cloudFuelTypes) await saveCloudData('fuelTypes', fuelTypes);
+            if (!cloudBeneficiaries) await saveCloudData('beneficiaries', beneficiaries);
+        }
+
+        async function loadCloudToLocal() {
+            await syncLocalToCloud();
+            
+            let localFuelData = JSON.parse(localStorage.getItem('fuelData')) || [];
+            let cloudFuelData = await getCloudData('fuelData') || [];
+
+            if (cloudFuelData && !Array.isArray(cloudFuelData)) {
+                cloudFuelData = Object.values(cloudFuelData);
+            }
+
+            const mergedMap = new Map();
+            localFuelData.forEach(item => mergedMap.set(item.id, item));
+            if (Array.isArray(cloudFuelData)) {
+                cloudFuelData.forEach(item => mergedMap.set(item.id, item));
+            }
+
+            const finalFuelData = Array.from(mergedMap.values());
+
+            localStorage.setItem('fuelData', JSON.stringify(finalFuelData));
+            if (finalFuelData.length > 0) {
+                await saveCloudData('fuelData', finalFuelData);
+            }
+
+            ['appUsers', 'fuelTypes', 'beneficiaries'].forEach(async (key) => {
+                let localVal = JSON.parse(localStorage.getItem(key)) || [];
+                let cloudVal = await getCloudData(key) || [];
+                if (cloudVal && !Array.isArray(cloudVal)) cloudVal = Object.values(cloudVal);
+                
+                const merged = [...new Set([...localVal, ...(Array.isArray(cloudVal) ? cloudVal : [])])];
+                localStorage.setItem(key, JSON.stringify(merged));
+                await saveCloudData(key, merged);
+            });
+        }
+
+        window.initCloudSystem = async function() {
+            await loadCloudToLocal();
+            
+            document.getElementById('dateInput').value = getTodayString();
+            document.getElementById('trucksInput').value = "1";
+
+            const savedUser = JSON.parse(localStorage.getItem('loggedInUser'));
+            if (savedUser) {
+                const users = JSON.parse(localStorage.getItem('appUsers')) || [];
+                const userInDb = users.find(u => u.id === savedUser.id);
+                if (userInDb) {
+                    currentUser = userInDb;
+                    
+                    document.getElementById('login-screen').classList.add('hidden');
+                    document.getElementById('login-screen').style.display = 'none';
+                    
+                    document.getElementById('main-app').classList.remove('hidden');
+                    document.getElementById('main-app').style.display = 'block';
+                    
+                    document.getElementById('userInfo').classList.remove('hidden');
+                    document.getElementById('userInfo').style.display = 'flex';
+                    document.getElementById('userNameDisplay').innerText = `مرحباً: ${currentUser.name}`;
+                    
+                    setupUIBasedOnRole();
+                    updateSelectOptions();
+                } else {
+                    logout();
+                }
+            }
+        };
+
+        async function login() {
+            await loadCloudToLocal();
+            const id = document.getElementById('loginId').value.trim();
+            const pass = document.getElementById('loginPass').value;
+            const users = JSON.parse(localStorage.getItem('appUsers')) || [];
+            
+            const user = users.find(u => u.id === id && u.pass === pass);
+            
+            if (user) {
+                currentUser = user;
+                localStorage.setItem('loggedInUser', JSON.stringify(user)); 
+                
+                document.getElementById('login-screen').classList.add('hidden');
+                document.getElementById('login-screen').style.display = 'none';
+                
+                document.getElementById('main-app').classList.remove('hidden');
+                document.getElementById('main-app').style.display = 'block';
+                
+                document.getElementById('userInfo').classList.remove('hidden');
+                document.getElementById('userInfo').style.display = 'flex';
+                document.getElementById('userNameDisplay').innerText = `مرحباً: ${user.name}`;
+                
+                setupUIBasedOnRole();
+                updateSelectOptions();
+            } else {
+                alert("بيانات الدخول غير صحيحة!");
+            }
+        }
+
+        function logout() {
+            currentUser = null;
+            localStorage.removeItem('loggedInUser'); 
+            
+            ['input-tab', 'report-tab', 'audit-tab', 'settings-tab'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.classList.add('hidden');
+                    el.style.display = 'none';
+                }
+            });
+
+            document.getElementById('main-app').classList.add('hidden');
+            document.getElementById('main-app').style.display = 'none';
+            
+            document.getElementById('userInfo').classList.add('hidden');
+            document.getElementById('userInfo').style.display = 'none';
+            
+            document.getElementById('login-screen').classList.remove('hidden');
+            document.getElementById('login-screen').style.display = 'block';
+            
+            document.getElementById('loginId').value = '';
+            document.getElementById('loginPass').value = '';
+        }
+
+        function setupUIBasedOnRole() {
+            ['btn-input-tab', 'btn-audit-tab', 'btn-settings-tab'].forEach(id => {
+                const el = document.getElementById(id);
+                if(el) {
+                    el.classList.add('hidden');
+                    el.style.display = 'none';
+                }
+            });
+            
+            const adminCols = document.querySelectorAll('.admin-only');
+            adminCols.forEach(col => {
+                col.classList.add('hidden');
+                col.style.display = 'none';
+            });
+
+            if (currentUser.role === 'admin') {
+                ['btn-input-tab', 'btn-audit-tab', 'btn-settings-tab'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if(el) {
+                        el.classList.remove('hidden');
+                        el.style.display = ''; 
+                    }
+                });
+                
+                adminCols.forEach(col => {
+                    col.classList.remove('hidden');
+                    col.style.display = ''; 
+                });
+                
+                renderUsersTable();
+                switchTab('input-tab');
+            } else if (currentUser.role === 'entry') {
+                const inputBtn = document.getElementById('btn-input-tab');
+                inputBtn.classList.remove('hidden');
+                inputBtn.style.display = '';
+                switchTab('input-tab');
+            } else {
+                switchTab('report-tab');
+            }
+        }
+
+        function renderUsersTable() {
+            const users = JSON.parse(localStorage.getItem('appUsers')) || [];
+            const tbody = document.getElementById('usersListTable');
+            tbody.innerHTML = users.map(u => `
+                <tr>
+                    <td class="border p-1">${u.id}</td>
+                    <td class="border p-1">${u.name}</td>
+                    <td class="border p-1">${u.role === 'admin' ? 'مدير' : (u.role === 'entry' ? 'مدخل' : 'مستعرض')}</td>
+                    <td class="border p-1">
+                        ${u.id !== 'admin' && u.id !== currentUser.id ? `<button onclick="deleteUser('${u.id}')" class="text-red-600 font-bold">X</button>` : '-'}
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function addUser() {
+            const id = document.getElementById('newUserId').value.trim();
+            const name = document.getElementById('newUserName').value.trim();
+            const pass = document.getElementById('newUserPass').value;
+            const role = document.getElementById('newUserRole').value;
+
+            if(!id || !name || !pass) return alert('أكمل جميع البيانات');
+
+            let users = JSON.parse(localStorage.getItem('appUsers')) || [];
+            if(users.find(u => u.id === id)) return alert('رقم الهوية موجود مسبقاً!');
+
+            users.push({ id, name, pass, role });
+            localStorage.setItem('appUsers', JSON.stringify(users));
+            await saveCloudData('appUsers', users);
+            renderUsersTable();
+            
+            document.getElementById('newUserId').value = '';
+            document.getElementById('newUserName').value = '';
+            document.getElementById('newUserPass').value = '';
+        }
+
+        async function deleteUser(id) {
+            if(confirm("تأكيد حذف المستخدم؟")) {
+                let users = JSON.parse(localStorage.getItem('appUsers')) || [];
+                users = users.filter(u => u.id !== id);
+                localStorage.setItem('appUsers', JSON.stringify(users));
+                await saveCloudData('appUsers', users);
+                renderUsersTable();
+            }
+        }
+
+        async function switchTab(tabId) {
+            await loadCloudToLocal();
+            ['input-tab', 'report-tab', 'audit-tab', 'settings-tab'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.classList.add('hidden');
+                    el.style.display = 'none';
+                }
+            });
+            
+            const activeTab = document.getElementById(tabId);
+            if (activeTab) {
+                activeTab.classList.remove('hidden');
+                activeTab.style.display = 'block';
+            }
+            
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active', 'border-b-4', 'border-blue-600', 'text-blue-600');
+            });
+            const activeBtn = document.getElementById('btn-' + tabId);
+            if(activeBtn) {
+                activeBtn.classList.add('active', 'border-b-4', 'border-blue-600', 'text-blue-600');
+            }
+
+            if(tabId === 'input-tab' && !document.getElementById('editingTxnId').value) {
+                document.getElementById('dateInput').value = getTodayString();
+                document.getElementById('trucksInput').value = "1";
+            }
+
+            if(tabId === 'report-tab') generateReport();
+            if(tabId === 'audit-tab') generateAuditReport();
+            if(tabId === 'settings-tab') {
+                renderSettingsList('fuelTypes', 'fuelTypesList');
+                renderSettingsList('beneficiaries', 'beneficiariesList');
+            }
+        }
+
+        function updateSelectOptions() {
+            const types = JSON.parse(localStorage.getItem('fuelTypes')) || [];
+            const benfs = JSON.parse(localStorage.getItem('beneficiaries')) || [];
+            
+            document.getElementById('typeInput').innerHTML = types.map(t => `<option value="${t}">${t}</option>`).join('');
+            document.getElementById('beneficiaryInput').innerHTML = benfs.map(b => `<option value="${b}">${b}</option>`).join('');
+            document.getElementById('typeFilter').innerHTML = `<option value="الكل">الكل</option>` + types.map(t => `<option value="${t}">${t}</option>`).join('');
+            
+            updateUnitBasedOnType();
+        }
+
+        function updateUnitBasedOnType() {
+            const typeValue = document.getElementById('typeInput').value || "";
+            document.getElementById('unitInput').value = (typeValue.includes("غاز") || typeValue.includes("الغاز")) ? "طن" : "لتر";
+        }
+
+        function renderSettingsList(key, listId) {
+            const items = JSON.parse(localStorage.getItem(key)) || [];
+            document.getElementById(listId).innerHTML = items.map((item, i) => `
+                <li class="flex justify-between p-2 text-sm"><span>${item}</span>
+                <button onclick="deleteSetting('${key}', ${i})" class="text-red-500 font-bold">X</button></li>
+            `).join('');
+        }
+
+        async function addSetting(key, inputId) {
+            const val = document.getElementById(inputId).value.trim();
+            if(!val) return;
+            let items = JSON.parse(localStorage.getItem(key)) || [];
+            if(!items.includes(val)) {
+                items.push(val);
+                localStorage.setItem(key, JSON.stringify(items));
+                await saveCloudData(key, items);
+                document.getElementById(inputId).value = '';
+                renderSettingsList(key, key === 'fuelTypes' ? 'fuelTypesList' : 'beneficiariesList');
+                updateSelectOptions();
+            }
+        }
+
+        async function deleteSetting(key, i) {
+            let items = JSON.parse(localStorage.getItem(key)) || [];
+            const itemToDelete = items[i];
+            
+            let fuelData = JSON.parse(localStorage.getItem('fuelData')) || [];
+            let isUsed = false;
+            
+            if (key === 'fuelTypes') {
+                isUsed = fuelData.some(record => record.type === itemToDelete);
+            } else if (key === 'beneficiaries') {
+                isUsed = fuelData.some(record => record.beneficiary === itemToDelete);
+            }
+            
+            if (isUsed) {
+                alert("لا يمكن حذف هذا العنصر لارتباطه بمعاملات سابقة أو حالية مسجلة في قاعدة البيانات.");
+                return;
+            }
+
+            if(confirm("هل أنت متأكد من الحذف؟")) {
+                items.splice(i, 1);
+                localStorage.setItem(key, JSON.stringify(items));
+                await saveCloudData(key, items);
+                renderSettingsList(key, key === 'fuelTypes' ? 'fuelTypesList' : 'beneficiariesList');
+                updateSelectOptions();
+            }
+        }
+
+        function promptAdminPassword() {
+            const pass = prompt("إجراء إداري: الرجاء إدخال كلمة المرور لاعتماد التعديل أو الحذف:");
+            if(pass === currentUser.pass) return true;
+            alert("كلمة المرور غير صحيحة، تم إلغاء الإجراء.");
+            return false;
+        }
+
+        async function saveData(e) {
+            e.preventDefault();
+            await loadCloudToLocal();
+            const editingId = document.getElementById('editingTxnId').value;
+            let data = JSON.parse(localStorage.getItem('fuelData')) || [];
+            
+            const trucksVal = parseInt(document.getElementById('trucksInput').value) || 1;
+
+            if (editingId) {
+                if(!promptAdminPassword()) return;
+                
+                const oldRecordIndex = data.findIndex(r => r.id === editingId && r.status === 'active');
+                if(oldRecordIndex > -1) {
+                    const oldRecord = data[oldRecordIndex];
+                    
+                    data[oldRecordIndex].isDeleted = true;
+                    data[oldRecordIndex].status = 'edited';
+                    data[oldRecordIndex].actionBy = currentUser.name;
+                    data[oldRecordIndex].actionTime = new Date().toLocaleString('ar-EG');
+                    data[oldRecordIndex].oldData = `${oldRecord.date} | ${oldRecord.beneficiary} | ${oldRecord.type} | ${formatNumber(oldRecord.trucks || 1)} شاحنات | ${formatNumber(oldRecord.quantity)} ${oldRecord.unit}`;
+                    data[oldRecordIndex].newData = `${document.getElementById('dateInput').value} | ${document.getElementById('beneficiaryInput').value} | ${document.getElementById('typeInput').value} | ${formatNumber(trucksVal)} شاحنات | ${formatNumber(document.getElementById('quantityInput').value)} ${document.getElementById('unitInput').value}`;
+                    
+                    const newRecord = {
+                        id: Date.now().toString(),
+                        serialNo: oldRecord.serialNo,
+                        date: document.getElementById('dateInput').value,
+                        beneficiary: document.getElementById('beneficiaryInput').value,
+                        type: document.getElementById('typeInput').value,
+                        trucks: trucksVal,
+                        quantity: parseFloat(document.getElementById('quantityInput').value),
+                        unit: document.getElementById('unitInput').value,
+                        addedBy: currentUser.name,
+                        isDeleted: false,
+                        status: 'active'
+                    };
+                    data.push(newRecord);
+                }
+                alert('تم اعتماد التعديل بنجاح');
+                cancelEdit();
+            } else {
+                const activeTransactions = data.filter(r => !r.isDeleted);
+                const nextSerial = activeTransactions.length + 1;
+
+                const newRecord = {
+                    id: Date.now().toString(),
+                    serialNo: nextSerial,
+                    date: document.getElementById('dateInput').value,
+                    beneficiary: document.getElementById('beneficiaryInput').value,
+                    type: document.getElementById('typeInput').value,
+                    trucks: trucksVal,
+                    quantity: parseFloat(document.getElementById('quantityInput').value),
+                    unit: document.getElementById('unitInput').value,
+                    addedBy: currentUser.name,
+                    isDeleted: false,
+                    status: 'active'
+                };
+                data.push(newRecord);
+                alert('تم الحفظ بنجاح!');
+            }
+
+            localStorage.setItem('fuelData', JSON.stringify(data));
+            await saveCloudData('fuelData', data);
+            document.getElementById('quantityInput').value = "";
+            document.getElementById('trucksInput').value = "1";
+            document.getElementById('dateInput').value = getTodayString();
+        }
+
+        // --- دالة استيراد ملف Excel في الإعدادات مع منع تكرار السجلات تماماً ---
+        async function importExcelFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const jsonRows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                    let existingData = JSON.parse(localStorage.getItem('fuelData')) || [];
+                    let addedCount = 0;
+
+                    for (let i = 0; i < jsonRows.length; i++) {
+                        let row = jsonRows[i];
+                        if (!row || row.length < 6) continue;
+                        
+                        let serial = row[0];
+                        let date = row[1];
+                        let beneficiary = row[2];
+                        let type = row[3];
+                        let trucksStr = row[4];
+                        let qtyStr = row[5];
+
+                        if (!date || !type || isNaN(serial)) continue;
+
+                        let trucks = parseInt(String(trucksStr).replace(/[^0-9]/g, '')) || 1;
+                        let cleanQty = parseFloat(String(qtyStr).replace(/,/g, '').replace(/[^0-9.]/g, '')) || 0;
+                        let unit = String(qtyStr).includes('طن') ? 'طن' : 'لتر';
+
+                        // التحقق الدقيق لمنع تكرار المعاملة بناءً على التاريخ والجهة والكمية والصنف
+                        let isDuplicate = existingData.some(item => 
+                            item.date === String(date) && 
+                            item.beneficiary === String(beneficiary) && 
+                            item.type === String(type) && 
+                            Math.abs(item.quantity - cleanQty) < 0.01
+                        );
+
+                        if (!isDuplicate && cleanQty > 0) {
+                            const newRecord = {
+                                id: (Date.now() + Math.random()).toString(),
+                                serialNo: existingData.filter(r => !r.isDeleted).length + 1,
+                                date: String(date),
+                                beneficiary: String(beneficiary),
+                                type: String(type),
+                                trucks: trucks,
+                                quantity: cleanQty,
+                                unit: unit,
+                                addedBy: currentUser ? currentUser.name : 'استيراد Excel',
+                                isDeleted: false,
+                                status: 'active'
+                            };
+                            existingData.push(newRecord);
+                            addedCount++;
+                        }
+                    }
+
+                    localStorage.setItem('fuelData', JSON.stringify(existingData));
+                    await saveCloudData('fuelData', existingData);
+
+                    alert(`تم استيراد الملف بنجاح! تمت إضافة ${addedCount} سجل جديد بدون تكرار أي بيانات سابقة.`);
+                    generateReport();
+                } catch (err) {
+                    console.error(err);
+                    alert("حدث خطأ أثناء قراءة ملف الـ Excel.");
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function initiateEdit(txnId) {
+            let data = JSON.parse(localStorage.getItem('fuelData')) || [];
+            const record = data.find(r => r.id === txnId && !r.isDeleted);
+            if(!record) return;
+
+            document.getElementById('editingTxnId').value = record.id;
+            document.getElementById('dateInput').value = record.date;
+            document.getElementById('beneficiaryInput').value = record.beneficiary;
+            document.getElementById('typeInput').value = record.type;
+            document.getElementById('trucksInput').value = record.trucks || 1;
+            document.getElementById('quantityInput').value = record.quantity;
+            document.getElementById('unitInput').value = record.unit;
+            
+            document.getElementById('formTitle').innerText = "تعديل المعاملة رقم: " + (record.serialNo || '-');
+            document.getElementById('formTitle').classList.replace('text-gray-800', 'text-red-600');
+            document.getElementById('submitBtn').innerText = "تحديث واعتماد التعديل";
+            document.getElementById('submitBtn').classList.replace('bg-blue-600', 'bg-red-600');
+            
+            document.getElementById('cancelEditBtn').classList.remove('hidden');
+            document.getElementById('cancelEditBtn').style.display = 'block';
+            
+            switchTab('input-tab');
+        }
+
+        function cancelEdit() {
+            document.getElementById('editingTxnId').value = "";
+            document.getElementById('fuelForm').reset();
+            document.getElementById('dateInput').value = getTodayString();
+            document.getElementById('trucksInput').value = "1";
+            
+            document.getElementById('formTitle').innerText = "تسجيل بيانات جديدة";
+            document.getElementById('formTitle').classList.replace('text-red-600', 'text-gray-800');
+            document.getElementById('submitBtn').innerText = "حفظ البيانات";
+            document.getElementById('submitBtn').classList.replace('bg-red-600', 'bg-blue-600');
+            
+            document.getElementById('cancelEditBtn').classList.add('hidden');
+            document.getElementById('cancelEditBtn').style.display = 'none';
+        }
+
+        async function deleteRecord(txnId) {
+            if(!promptAdminPassword()) return;
+            await loadCloudToLocal();
+
+            let data = JSON.parse(localStorage.getItem('fuelData')) || [];
+            const index = data.findIndex(r => r.id === txnId && !r.isDeleted);
+            if(index > -1) {
+                data[index].isDeleted = true;
+                data[index].status = 'deleted';
+                data[index].actionBy = currentUser.name;
+                data[index].actionTime = new Date().toLocaleString('ar-EG');
+                localStorage.setItem('fuelData', JSON.stringify(data));
+                await saveCloudData('fuelData', data);
+                alert("تم حذف المعاملة (ستظهر في سجل المحذوفات والمعدلات).");
+                generateReport();
+            }
+        }
+
+        async function generateReport() {
+            await loadCloudToLocal();
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            const typeFilter = document.getElementById('typeFilter').value;
+            let data = JSON.parse(localStorage.getItem('fuelData')) || [];
+
+            let periodText = "الفترة: جميع السجلات";
+            if (startDate && endDate) {
+                periodText = `الفترة من: ${startDate} إلى: ${endDate}`;
+            } else if (startDate) {
+                periodText = `الفترة من: ${startDate}`;
+            } else if (endDate) {
+                periodText = `الفترة حتى: ${endDate}`;
+            }
+            document.getElementById('reportPeriodDisplay').innerText = periodText;
+
+            const activeData = data.filter(item => !item.isDeleted);
+
+            const filteredData = activeData.filter(item => {
+                let passDate = true, passType = true;
+                if (startDate) passDate = passDate && (item.date >= startDate);
+                if (endDate) passDate = passDate && (item.date <= endDate);
+                if (typeFilter !== 'الكل') passType = (item.type === typeFilter);
+                return passDate && passType;
+            });
+
+            const reportBody = document.getElementById('reportTableBody');
+            reportBody.innerHTML = '';
+            filteredData.forEach(item => {
+                let actionButtons = '';
+                if(currentUser && currentUser.role === 'admin') {
+                    actionButtons = `
+                        <td class="border border-gray-300 p-2 admin-only" data-html2canvas-ignore="true">
+                            <button onclick="initiateEdit('${item.id}')" class="text-blue-600 mx-1">✏️</button>
+                            <button onclick="deleteRecord('${item.id}')" class="text-red-600 mx-1">❌</button>
+                        </td>
+                    `;
+                }
+
+                reportBody.innerHTML += `
+                    <tr>
+                        <td class="border border-gray-300 p-2 font-bold text-blue-800">${item.serialNo || '-'}</td>
+                        <td class="border border-gray-300 p-2">${item.date}</td>
+                        <td class="border border-gray-300 p-2">${item.beneficiary}</td>
+                        <td class="border border-gray-300 p-2">${item.type}</td>
+                        <td class="border border-gray-300 p-2 font-semibold">${formatNumber(item.trucks || 1)} شاحنة</td>
+                        <td class="border border-gray-300 p-2" dir="ltr"><span class="font-bold">${formatNumber(item.quantity)}</span> <span class="text-xs text-gray-500">${item.unit||''}</span></td>
+                        ${actionButtons}
+                    </tr>
+                `;
+            });
+
+            const totals = {};
+            filteredData.forEach(item => {
+                if (totals[item.type] === undefined) {
+                    totals[item.type] = { qty: 0, trucks: 0 };
+                }
+                totals[item.type].qty += item.quantity;
+                totals[item.type].trucks += (parseInt(item.trucks) || 1);
+            });
+
+            const summaryBody = document.getElementById('summaryTableBody');
+            summaryBody.innerHTML = '';
+            
+            for (const [type, dataObj] of Object.entries(totals)) {
+                let displayUnit = (type.includes("غاز") || type.includes("الغاز")) ? "طن" : "لتر";
+                summaryBody.innerHTML += `
+                    <tr>
+                        <td class="border border-gray-300 p-2 font-bold">${type}</td>
+                        <td class="border border-gray-300 p-2 font-bold text-gray-700">${formatNumber(dataObj.trucks)} شاحنة</td>
+                        <td class="border border-gray-300 p-2 text-blue-700 font-bold" dir="ltr">${formatNumber(dataObj.qty)} <span class="text-gray-500 text-sm">${displayUnit}</span></td>
+                    </tr>
+                `;
+            }
+
+            if (Object.keys(totals).length === 0) {
+                summaryBody.innerHTML = `<tr><td colspan="3" class="border border-gray-300 p-2 text-gray-500">لا توجد حركات مسجلة لهذه الفترة</td></tr>`;
+            }
+            
+            updateExportFooter();
+        }
+
+        async function generateAuditReport() {
+            await loadCloudToLocal();
+            let data = JSON.parse(localStorage.getItem('fuelData')) || [];
+            const auditData = data.filter(item => item.isDeleted === true);
+            
+            const tbody = document.getElementById('auditTableBody');
+            tbody.innerHTML = '';
+            
+            auditData.reverse().forEach(item => {
+                let badgeClass = item.status === 'deleted' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800';
+                let actionText = item.status === 'deleted' ? 'حذف نهائي' : 'تعديل معاملة';
+                
+                let detailsHtml = '';
+                if (item.status === 'deleted') {
+                    detailsHtml = `
+                        <strong>الجهة:</strong> ${item.beneficiary} &nbsp;|&nbsp; <strong>الصنف:</strong> ${item.type} &nbsp;|&nbsp; <strong>الشاحنات:</strong> ${formatNumber(item.trucks || 1)} &nbsp;|&nbsp; <strong>الكمية:</strong> ${formatNumber(item.quantity)} ${item.unit} <br>
+                        <span class="text-gray-500">التاريخ الأصلي: ${item.date} &nbsp;|&nbsp; سجلت بواسطة: ${item.addedBy}</span>
+                    `;
+                } else {
+                    detailsHtml = `
+                        <div class="text-red-700 bg-red-50 p-1 rounded mb-1"><strong>قبل التعديل:</strong> ${item.oldData || 'غير متوفر'}</div>
+                        <div class="text-green-700 bg-green-50 p-1 rounded"><strong>بعد التعديل:</strong> ${item.newData || 'غير متوفر'}</div>
+                    `;
+                }
+                
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="border p-2"><span class="px-2 py-1 rounded text-xs font-bold ${badgeClass}">${actionText}</span></td>
+                        <td class="border p-2 font-bold text-blue-900">${item.serialNo || '-'}</td>
+                        <td class="border p-2 text-right text-xs">${detailsHtml}</td>
+                        <td class="border p-2 text-xs text-blue-800 font-semibold" dir="ltr">
+                            ${item.actionBy} <br> ${item.actionTime}
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function updateExportFooter() {
+            if(currentUser) {
+                const now = new Date();
+                document.getElementById('footerUser').innerText = `طُبع بواسطة: ${currentUser.name}`;
+                document.getElementById('footerTime').innerText = `تاريخ ووقت الاستخراج: ${now.toLocaleString('ar-EG')}`;
+            }
+        }
+
+        function getReportFileName() {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            let periodStr = "";
+            
+            if (startDate && endDate) {
+                periodStr = (startDate === endDate) ? startDate : startDate + "_إلى_" + endDate;
+            } else if (startDate) {
+                periodStr = "من_" + startDate;
+            } else if (endDate) {
+                periodStr = "حتى_" + endDate;
+            } else {
+                periodStr = getTodayString();
+            }
+            
+            return "تقرير_كميات_" + periodStr;
+        }
+
+        function exportExcel(tableId) {
+            updateExportFooter();
+            const periodText = document.getElementById('reportPeriodDisplay').innerText;
+            const userName = currentUser ? currentUser.name : 'غير معروف';
+            const nowTime = new Date().toLocaleString('ar-EG');
+            const fileName = getReportFileName();
+
+            let wsData = [
+                ["تقرير كمية المحروقات"],
+                [periodText],
+                [""],
+                ["تفاصيل الحركات"],
+                ["رقم المعاملة", "التاريخ", "الجهة المستفيدة", "الصنف", "عدد الشاحنات", "الكمية"]
+            ];
+
+            let activeData = JSON.parse(localStorage.getItem('fuelData')) || [];
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            const typeFilter = document.getElementById('typeFilter').value;
+
+            activeData = activeData.filter(item => !item.isDeleted).filter(item => {
+                let passDate = true, passType = true;
+                if (startDate) passDate = passDate && (item.date >= startDate);
+                if (endDate) passDate = passDate && (item.date <= endDate);
+                if (typeFilter !== 'الكل') passType = (item.type === typeFilter);
+                return passDate && passType;
+            });
+
+            activeData.forEach(item => {
+                wsData.push([item.serialNo || '', item.date, item.beneficiary, item.type, formatNumber(item.trucks || 1) + " شاحنة", `${formatNumber(item.quantity)} ${item.unit || ''}`]);
+            });
+
+            wsData.push([""]);
+            wsData.push(["إجمالي الكمية وعدد الشاحنات حسب الصنف"]);
+            wsData.push(["الصنف", "إجمالي الشاحنات", "إجمالي الكمية"]);
+
+            const totals = {};
+            activeData.forEach(item => {
+                if (totals[item.type] === undefined) totals[item.type] = { qty: 0, trucks: 0 };
+                totals[item.type].qty += item.quantity;
+                totals[item.type].trucks += (parseInt(item.trucks) || 1);
+            });
+
+            for (const [type, dataObj] of Object.entries(totals)) {
+                let displayUnit = (type.includes("غاز") || type.includes("الغاز")) ? "طن" : "لتر";
+                wsData.push([type, `${formatNumber(dataObj.trucks)} شاحنة`, `${formatNumber(dataObj.qty)} ${displayUnit}`]);
+            }
+
+            wsData.push([""]);
+            wsData.push([`طُبع بواسطة: ${userName}`, `تاريخ ووقت الاستخراج: ${nowTime}`]);
+
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+            ws['!rtl'] = true;
+            XLSX.utils.book_append_sheet(wb, ws, "التقرير");
+            XLSX.writeFile(wb, fileName + ".xlsx");
+        }
+
+        async function shareExcel(tableId) {
+            updateExportFooter();
+            const periodText = document.getElementById('reportPeriodDisplay').innerText;
+            const userName = currentUser ? currentUser.name : 'غير معروف';
+            const nowTime = new Date().toLocaleString('ar-EG');
+            const fileName = getReportFileName();
+
+            let wsData = [
+                ["تقرير كمية المحروقات"],
+                [periodText],
+                [""],
+                ["تفاصيل الحركات"],
+                ["رقم المعاملة", "التاريخ", "الجهة المستفيدة", "الصنف", "عدد الشاحنات", "الكمية"]
+            ];
+
+            let activeData = JSON.parse(localStorage.getItem('fuelData')) || [];
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            const typeFilter = document.getElementById('typeFilter').value;
+
+            activeData = activeData.filter(item => !item.isDeleted).filter(item => {
+                let passDate = true, passType = true;
+                if (startDate) passDate = passDate && (item.date >= startDate);
+                if (endDate) passDate = passDate && (item.date <= endDate);
+                if (typeFilter !== 'الكل') passType = (item.type === typeFilter);
+                return passDate && passType;
+            });
+
+            activeData.forEach(item => {
+                wsData.push([item.serialNo || '', item.date, item.beneficiary, item.type, formatNumber(item.trucks || 1) + " شاحنة", `${formatNumber(item.quantity)} ${item.unit || ''}`]);
+            });
+
+            wsData.push([""]);
+            wsData.push(["إجمالي الكمية وعدد الشاحنات حسب الصنف"]);
+            wsData.push(["الصنف", "إجمالي الشاحنات", "إجمالي الكمية"]);
+
+            const totals = {};
+            activeData.forEach(item => {
+                if (totals[item.type] === undefined) totals[item.type] = { qty: 0, trucks: 0 };
+                totals[item.type].qty += item.quantity;
+                totals[item.type].trucks += (parseInt(item.trucks) || 1);
+            });
+
+            for (const [type, dataObj] of Object.entries(totals)) {
+                let displayUnit = (type.includes("غاز") || type.includes("الغاز")) ? "طن" : "لتر";
+                wsData.push([type, `${formatNumber(dataObj.trucks)} شاحنة`, `${formatNumber(dataObj.qty)} ${displayUnit}`]);
+            }
+
+            wsData.push([""]);
+            wsData.push([`طُبع بواسطة: ${userName}`, `تاريخ ووقت الاستخراج: ${nowTime}`]);
+
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+            ws['!rtl'] = true;
+            XLSX.utils.book_append_sheet(wb, ws, "التقرير");
+
+            let wbout = XLSX.write(wb, {bookType:'xlsx', type:'array'});
+            let blob = new Blob([wbout], {type: "application/octet-stream"});
+            let file = new File([blob], fileName + ".xlsx", {type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+            
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                try { 
+                    await navigator.share({ files: [file], title: 'تقرير المحروقات', text: 'مرفق التقرير بصيغة Excel' }); 
+                } catch (e) { 
+                    console.error(e); 
+                }
+            } else {
+                XLSX.writeFile(wb, fileName + ".xlsx");
+            }
+        }
+
+        function exportPDF(tableId) {
+            updateExportFooter();
+            const element = document.getElementById(tableId);
+            const fileName = getReportFileName();
+            const opt = {
+                margin: [0.4, 0.4, 0.6, 0.4],
+                filename: fileName + '.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+                jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' },
+                pagebreak: { mode: ['css', 'legacy'] },
+                callback: function (pdf) {
+                    const totalPages = pdf.internal.getNumberOfPages();
+                    for (let i = 1; i <= totalPages; i++) {
+                        pdf.setPage(i);
+                        pdf.setFont("helvetica", "normal");
+                        pdf.setFontSize(10);
+                        pdf.setTextColor(100, 100, 100);
+                        pdf.text(`Page ${i} of ${totalPages}`, pdf.internal.pageSize.getWidth() - 1.0, pdf.internal.pageSize.getHeight() - 0.3, { align: 'right' });
+                    }
+                }
+            };
+            html2pdf().set(opt).from(element).outputPdf('blob').then(function(pdfBlob) {
+                const blobUrl = URL.createObjectURL(pdfBlob);
+                const a = document.createElement('a');
+                a.href = blobUrl;
+                a.download = fileName + '.pdf';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(blobUrl);
+            });
+        }
+
+        function sharePDF(tableId) {
+            updateExportFooter();
+            const element = document.getElementById(tableId);
+            const fileName = getReportFileName();
+            const opt = { 
+                margin: [0.4, 0.4, 0.6, 0.4], 
+                filename: fileName + '.pdf', 
+                image: { type: 'jpeg', quality: 0.98 }, 
+                html2canvas: { scale: 2, useCORS: true, letterRendering: true }, 
+                jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' },
+                pagebreak: { mode: ['css', 'legacy'] },
+                callback: function (pdf) {
+                    const totalPages = pdf.internal.getNumberOfPages();
+                    for (let i = 1; i <= totalPages; i++) {
+                        pdf.setPage(i);
+                        pdf.setFont("helvetica", "normal");
+                        pdf.setFontSize(10);
+                        pdf.setTextColor(100, 100, 100);
+                        pdf.text(`Page ${i} of ${totalPages}`, pdf.internal.pageSize.getWidth() - 1.0, pdf.internal.pageSize.getHeight() - 0.3, { align: 'right' });
+                    }
+                }
+            };
+            html2pdf().set(opt).from(element).output('blob').then(function(pdfBlob) {
+                const file = new File([pdfBlob], fileName + ".pdf", { type: "application/pdf" });
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    navigator.share({
+                        files: [file],
+                        title: 'تقرير المحروقات',
+                        text: 'مرفق التقرير'
+                    }).catch(function(e) {
+                        const blobUrl = URL.createObjectURL(pdfBlob);
+                        const a = document.createElement('a');
+                        a.href = blobUrl;
+                        a.download = fileName + '.pdf';
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(blobUrl);
+                    });
+                } else {
+                    const blobUrl = URL.createObjectURL(pdfBlob);
+                    const a = document.createElement('a');
+                    a.href = blobUrl;
+                    a.download = fileName + '.pdf';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(blobUrl);
+                }
+            });
+        }
+    </script>
+</body>
+</html>
