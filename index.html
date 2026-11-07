@@ -123,7 +123,11 @@
                                 <label class="block text-sm font-medium mb-1">الكمية</label>
                                 <div class="flex">
                                     <input type="number" id="quantityInput" placeholder="الرقم" required class="w-2/3 border p-2 rounded-r focus:ring focus:ring-blue-200" step="any">
-                                    <input type="text" id="unitInput" readonly class="w-1/3 border-y border-l p-2 rounded-l bg-gray-100 text-center text-xs font-bold" value="لتر">
+                                    <select id="unitInput" class="w-1/3 border-y border-l p-2 rounded-l bg-gray-50 focus:ring focus:ring-blue-200 text-xs">
+                                        <option value="لتر">لتر</option>
+                                        <option value="طن">طن</option>
+                                        <option value="كوب">كوب</option>
+                                    </select>
                                 </div>
                             </div>
                         </div>
@@ -141,18 +145,7 @@
 
             <div id="report-tab" class="hidden" style="display: none;">
                 <div class="bg-white p-4 rounded-lg shadow-md mb-4">
-                    <h2 class="text-lg font-semibold mb-3 border-b pb-2">فلترة واستيراد التقارير</h2>
-                    
-                    <!-- زر استيراد ملف Excel مع منع التكرار -->
-                    <div class="mb-4 bg-blue-50 border border-blue-200 p-3 rounded-lg flex items-center justify-between">
-                        <div>
-                            <span class="text-xs font-bold text-blue-900 block">استيراد بيانات سابقة من ملف Excel</span>
-                            <span class="text-[11px] text-gray-600">دمج البيانات القديمة والجديدة بدون تكرار</span>
-                        </div>
-                        <input type="file" id="excelFileImporter" accept=".xlsx, .xls" class="hidden" onchange="importExcelFile(event)">
-                        <button type="button" onclick="document.getElementById('excelFileImporter').click()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-3 py-2 rounded shadow">رفع ملف Excel القديم</button>
-                    </div>
-
+                    <h2 class="text-lg font-semibold mb-3 border-b pb-2">فلترة التقرير</h2>
                     <div class="flex gap-2 mb-3">
                         <div class="w-1/3">
                             <label class="block text-xs font-medium mb-1">نوع الوقود</label>
@@ -167,7 +160,7 @@
                             <input type="date" id="endDate" class="w-full border p-2 rounded text-xs">
                         </div>
                     </div>
-                    <button onclick="generateReport()" class="w-full bg-gray-800 text-white font-bold py-2 rounded mb-2 hover:bg-gray-900">تحديث التقرير (عرض الكل)</button>
+                    <button onclick="generateReport()" class="w-full bg-gray-800 text-white font-bold py-2 rounded mb-2 hover:bg-gray-900">تحديث التقرير</button>
                     
                     <div class="grid grid-cols-2 gap-2 mt-4">
                         <button onclick="exportExcel('printable-report')" class="bg-green-600 text-white text-sm font-bold py-2 rounded">تنزيل Excel</button>
@@ -260,7 +253,7 @@
                             <option value="admin">مدير نظام</option>
                         </select>
                     </div>
-                    <button type="button" onclick="addUser()" class="w-full bg-blue-600 text-white font-bold py-2 rounded mb-3">إضافة مستخدم</button>
+                    <button onclick="addUser()" class="w-full bg-blue-600 text-white font-bold py-2 rounded mb-3">إضافة مستخدم</button>
                     
                     <div class="overflow-x-auto">
                         <table class="w-full text-xs text-center border-collapse border">
@@ -281,7 +274,7 @@
                     <h2 class="text-sm font-semibold mb-2">إدارة الجهات المستفيدة</h2>
                     <div class="flex gap-2 mb-2">
                         <input type="text" id="newBeneficiary" placeholder="اسم الجهة" class="w-full border p-2 rounded text-sm">
-                        <button type="button" onclick="addSetting('beneficiaries', 'newBeneficiary')" class="bg-gray-800 text-white px-3 rounded text-sm shrink-0">إضافة</button>
+                        <button onclick="addSetting('beneficiaries', 'newBeneficiary')" class="bg-gray-800 text-white px-3 rounded text-sm shrink-0">إضافة</button>
                     </div>
                     <ul id="beneficiariesList" class="divide-y border rounded max-h-32 overflow-y-auto"></ul>
                 </div>
@@ -290,7 +283,7 @@
                     <h2 class="text-sm font-semibold mb-2">إدارة أنواع الوقود</h2>
                     <div class="flex gap-2 mb-2">
                         <input type="text" id="newFuelType" placeholder="نوع الوقود" class="w-full border p-2 rounded text-sm">
-                        <button type="button" onclick="addSetting('fuelTypes', 'newFuelType')" class="bg-gray-800 text-white px-3 rounded text-sm shrink-0">إضافة</button>
+                        <button onclick="addSetting('fuelTypes', 'newFuelType')" class="bg-gray-800 text-white px-3 rounded text-sm shrink-0">إضافة</button>
                     </div>
                     <ul id="fuelTypesList" class="divide-y border rounded max-h-32 overflow-y-auto"></ul>
                 </div>
@@ -319,12 +312,7 @@
             if (!window.fbDb) return null;
             try {
                 const snapshot = await window.fbGet(window.fbChild(window.fbRef(window.fbDb), path));
-                if (!snapshot.exists()) return null;
-                let val = snapshot.val();
-                if (val && typeof val === 'object' && !Array.isArray(val)) {
-                    val = Object.values(val);
-                }
-                return val;
+                return snapshot.exists() ? snapshot.val() : null;
             } catch (e) {
                 console.error(e);
                 return null;
@@ -344,6 +332,7 @@
             let users = JSON.parse(localStorage.getItem('appUsers')) || [];
             let fuelTypes = JSON.parse(localStorage.getItem('fuelTypes')) || [];
             let beneficiaries = JSON.parse(localStorage.getItem('beneficiaries')) || [];
+            let fuelData = JSON.parse(localStorage.getItem('fuelData')) || [];
 
             if(users.length === 0) {
                 users.push({ id: 'admin', name: 'مدير النظام الافتراضي', pass: 'admin', role: 'admin' });
@@ -358,42 +347,28 @@
                 beneficiaries = ["UNOPS"];
             }
 
-            // تصفية وحذف أي مستخدمين مكررين نهائياً
-            users = Array.from(new Map(users.map(u => [u.id, u])).values());
-            fuelTypes = [...new Set(fuelTypes)];
-            beneficiaries = [...new Set(beneficiaries)];
+            const cloudUsers = await getCloudData('appUsers');
+            const cloudFuelTypes = await getCloudData('fuelTypes');
+            const cloudBeneficiaries = await getCloudData('beneficiaries');
+            const cloudFuelData = await getCloudData('fuelData');
 
-            localStorage.setItem('appUsers', JSON.stringify(users));
-            localStorage.setItem('fuelTypes', JSON.stringify(fuelTypes));
-            localStorage.setItem('beneficiaries', JSON.stringify(beneficiaries));
-
-            await saveCloudData('appUsers', users);
-            await saveCloudData('fuelTypes', fuelTypes);
-            await saveCloudData('beneficiaries', beneficiaries);
+            if (!cloudUsers) await saveCloudData('appUsers', users);
+            if (!cloudFuelTypes) await saveCloudData('fuelTypes', fuelTypes);
+            if (!cloudBeneficiaries) await saveCloudData('beneficiaries', beneficiaries);
+            if (!cloudFuelData && fuelData.length > 0) await saveCloudData('fuelData', fuelData);
         }
 
         async function loadCloudToLocal() {
             await syncLocalToCloud();
-            
-            let localFuelData = JSON.parse(localStorage.getItem('fuelData')) || [];
-            let cloudFuelData = await getCloudData('fuelData') || [];
+            const users = await getCloudData('appUsers');
+            const fuelTypes = await getCloudData('fuelTypes');
+            const beneficiaries = await getCloudData('beneficiaries');
+            const fuelData = await getCloudData('fuelData');
 
-            if (cloudFuelData && !Array.isArray(cloudFuelData)) {
-                cloudFuelData = Object.values(cloudFuelData);
-            }
-
-            const mergedMap = new Map();
-            localFuelData.forEach(item => mergedMap.set(item.id, item));
-            if (Array.isArray(cloudFuelData)) {
-                cloudFuelData.forEach(item => mergedMap.set(item.id, item));
-            }
-
-            const finalFuelData = Array.from(mergedMap.values());
-
-            localStorage.setItem('fuelData', JSON.stringify(finalFuelData));
-            if (finalFuelData.length > 0) {
-                await saveCloudData('fuelData', finalFuelData);
-            }
+            if(users) localStorage.setItem('appUsers', JSON.stringify(users));
+            if(fuelTypes) localStorage.setItem('fuelTypes', JSON.stringify(fuelTypes));
+            if(beneficiaries) localStorage.setItem('beneficiaries', JSON.stringify(beneficiaries));
+            if(fuelData) localStorage.setItem('fuelData', JSON.stringify(fuelData));
         }
 
         window.initCloudSystem = async function() {
@@ -522,24 +497,19 @@
             }
         }
 
-        // تفريغ الجدول بالكامل وإزالة التكرار نهائياً
         function renderUsersTable() {
-            let users = JSON.parse(localStorage.getItem('appUsers')) || [];
-            users = Array.from(new Map(users.map(u => [u.id, u])).values());
+            const users = JSON.parse(localStorage.getItem('appUsers')) || [];
             const tbody = document.getElementById('usersListTable');
-            if(tbody) {
-                tbody.innerHTML = ""; 
-                tbody.innerHTML = users.map(u => `
-                    <tr>
-                        <td class="border p-1">${u.id}</td>
-                        <td class="border p-1">${u.name}</td>
-                        <td class="border p-1">${u.role === 'admin' ? 'مدير' : (u.role === 'entry' ? 'مدخل' : 'مستعرض')}</td>
-                        <td class="border p-1">
-                            ${u.id !== 'admin' && u.id !== currentUser.id ? `<button type="button" onclick="deleteUser('${u.id}')" class="text-red-600 font-bold">X</button>` : '-'}
-                        </td>
-                    </tr>
-                `).join('');
-            }
+            tbody.innerHTML = users.map(u => `
+                <tr>
+                    <td class="border p-1">${u.id}</td>
+                    <td class="border p-1">${u.name}</td>
+                    <td class="border p-1">${u.role === 'admin' ? 'مدير' : (u.role === 'entry' ? 'مدخل' : 'مستعرض')}</td>
+                    <td class="border p-1">
+                        ${u.id !== 'admin' && u.id !== currentUser.id ? `<button onclick="deleteUser('${u.id}')" class="text-red-600 font-bold">X</button>` : '-'}
+                    </td>
+                </tr>
+            `).join('');
         }
 
         async function addUser() {
@@ -554,7 +524,6 @@
             if(users.find(u => u.id === id)) return alert('رقم الهوية موجود مسبقاً!');
 
             users.push({ id, name, pass, role });
-            users = Array.from(new Map(users.map(u => [u.id, u])).values());
             localStorage.setItem('appUsers', JSON.stringify(users));
             await saveCloudData('appUsers', users);
             renderUsersTable();
@@ -568,7 +537,6 @@
             if(confirm("تأكيد حذف المستخدم؟")) {
                 let users = JSON.parse(localStorage.getItem('appUsers')) || [];
                 users = users.filter(u => u.id !== id);
-                users = Array.from(new Map(users.map(u => [u.id, u])).values());
                 localStorage.setItem('appUsers', JSON.stringify(users));
                 await saveCloudData('appUsers', users);
                 renderUsersTable();
@@ -609,48 +577,31 @@
             if(tabId === 'settings-tab') {
                 renderSettingsList('fuelTypes', 'fuelTypesList');
                 renderSettingsList('beneficiaries', 'beneficiariesList');
-                if (currentUser && currentUser.role === 'admin') {
-                    renderUsersTable();
-                }
             }
         }
 
         function updateSelectOptions() {
-            let types = JSON.parse(localStorage.getItem('fuelTypes')) || [];
-            let benfs = JSON.parse(localStorage.getItem('beneficiaries')) || [];
+            const types = JSON.parse(localStorage.getItem('fuelTypes')) || [];
+            const benfs = JSON.parse(localStorage.getItem('beneficiaries')) || [];
             
-            types = [...new Set(types)];
-            benfs = [...new Set(benfs)];
-
-            const typeSelect = document.getElementById('typeInput');
-            const benfSelect = document.getElementById('beneficiaryInput');
-            const typeFilter = document.getElementById('typeFilter');
-
-            if(typeSelect) typeSelect.innerHTML = types.map(t => `<option value="${t}">${t}</option>`).join('');
-            if(benfSelect) benfSelect.innerHTML = benfs.map(b => `<option value="${b}">${b}</option>`).join('');
-            if(typeFilter) typeFilter.innerHTML = `<option value="الكل">الكل</option>` + types.map(t => `<option value="${t}">${t}</option>`).join('');
+            document.getElementById('typeInput').innerHTML = types.map(t => `<option value="${t}">${t}</option>`).join('');
+            document.getElementById('beneficiaryInput').innerHTML = benfs.map(b => `<option value="${b}">${b}</option>`).join('');
+            document.getElementById('typeFilter').innerHTML = `<option value="الكل">الكل</option>` + types.map(t => `<option value="${t}">${t}</option>`).join('');
             
             updateUnitBasedOnType();
         }
 
         function updateUnitBasedOnType() {
             const typeValue = document.getElementById('typeInput').value || "";
-            const unitInput = document.getElementById('unitInput');
-            if(unitInput) {
-                unitInput.value = (typeValue.includes("غاز") || typeValue.includes("الغاز")) ? "طن" : "لتر";
-            }
+            document.getElementById('unitInput').value = (typeValue.includes("غاز") || typeValue.includes("الغاز")) ? "طن" : "لتر";
         }
 
         function renderSettingsList(key, listId) {
-            let items = JSON.parse(localStorage.getItem(key)) || [];
-            items = [...new Set(items)];
-            const listEl = document.getElementById(listId);
-            if(listEl) {
-                listEl.innerHTML = items.map((item, i) => `
-                    <li class="flex justify-between p-2 text-sm"><span>${item}</span>
-                    <button type="button" onclick="deleteSetting('${key}', ${i})" class="text-red-500 font-bold">X</button></li>
-                `).join('');
-            }
+            const items = JSON.parse(localStorage.getItem(key)) || [];
+            document.getElementById(listId).innerHTML = items.map((item, i) => `
+                <li class="flex justify-between p-2 text-sm"><span>${item}</span>
+                <button onclick="deleteSetting('${key}', ${i})" class="text-red-500 font-bold">X</button></li>
+            `).join('');
         }
 
         async function addSetting(key, inputId) {
@@ -659,7 +610,6 @@
             let items = JSON.parse(localStorage.getItem(key)) || [];
             if(!items.includes(val)) {
                 items.push(val);
-                items = [...new Set(items)];
                 localStorage.setItem(key, JSON.stringify(items));
                 await saveCloudData(key, items);
                 document.getElementById(inputId).value = '';
@@ -688,7 +638,6 @@
 
             if(confirm("هل أنت متأكد من الحذف؟")) {
                 items.splice(i, 1);
-                items = [...new Set(items)];
                 localStorage.setItem(key, JSON.stringify(items));
                 await saveCloudData(key, items);
                 renderSettingsList(key, key === 'fuelTypes' ? 'fuelTypesList' : 'beneficiariesList');
@@ -827,79 +776,6 @@
             }
         }
 
-        // استيراد ملف Excel مع منع التكرار تماماً
-        async function importExcelFile(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = async function(e) {
-                try {
-                    const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, { type: 'array' });
-                    const firstSheetName = workbook.SheetNames[0];
-                    const worksheet = workbook.Sheets[firstSheetName];
-                    const jsonRows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-
-                    let existingData = JSON.parse(localStorage.getItem('fuelData')) || [];
-                    let addedCount = 0;
-
-                    for (let i = 0; i < jsonRows.length; i++) {
-                        let row = jsonRows[i];
-                        if (!row || row.length < 6) continue;
-                        
-                        let serial = row[0];
-                        let date = row[1];
-                        let beneficiary = row[2];
-                        let type = row[3];
-                        let trucksStr = row[4];
-                        let qtyStr = row[5];
-
-                        if (!date || !type || isNaN(serial)) continue;
-
-                        let trucks = parseInt(String(trucksStr).replace(/[^0-9]/g, '')) || 1;
-                        let cleanQty = parseFloat(String(qtyStr).replace(/,/g, '').replace(/[^0-9.]/g, '')) || 0;
-                        let unit = String(qtyStr).includes('طن') ? 'طن' : 'لتر';
-
-                        let isDuplicate = existingData.some(item => 
-                            item.date === String(date) && 
-                            item.beneficiary === String(beneficiary) && 
-                            item.type === String(type) && 
-                            Math.abs(item.quantity - cleanQty) < 0.01
-                        );
-
-                        if (!isDuplicate && cleanQty > 0) {
-                            const newRecord = {
-                                id: (Date.now() + Math.random()).toString(),
-                                serialNo: existingData.filter(r => !r.isDeleted).length + 1,
-                                date: String(date),
-                                beneficiary: String(beneficiary),
-                                type: String(type),
-                                trucks: trucks,
-                                quantity: cleanQty,
-                                unit: unit,
-                                addedBy: currentUser ? currentUser.name : 'استيراد Excel',
-                                isDeleted: false,
-                                status: 'active'
-                            };
-                            existingData.push(newRecord);
-                            addedCount++;
-                        }
-                    }
-
-                    localStorage.setItem('fuelData', JSON.stringify(existingData));
-                    await saveCloudData('fuelData', existingData);
-
-                    alert(`تم استيراد الملف بنجاح! تمت إضافة ${addedCount} سجل جديد بدون تكرار البيانات.`);
-                    generateReport();
-                } catch (err) {
-                    console.error(err);
-                    alert("حدث خطأ أثناء قراءة ملف الـ Excel.");
-                }
-            };
-            reader.readAsArrayBuffer(file);
-        }
-
         async function generateReport() {
             await loadCloudToLocal();
             const startDate = document.getElementById('startDate').value;
@@ -907,11 +783,11 @@
             const typeFilter = document.getElementById('typeFilter').value;
             let data = JSON.parse(localStorage.getItem('fuelData')) || [];
 
-            let periodText = "الفترة: جميع السجلات (بدون قيود زمنية)";
+            let periodText = "الفترة: جميع السجلات";
             if (startDate && endDate) {
-                periodText = `الفترة من: ${startDate} إلى: ${endDate}`;
+                periodText = `الفترة من: ${startDate}  إلى: ${endDate}`;
             } else if (startDate) {
-                periodText = `الفترة من: ${startDate} فصاعداً`;
+                periodText = `الفترة من: ${startDate}`;
             } else if (endDate) {
                 periodText = `الفترة حتى: ${endDate}`;
             }
@@ -923,7 +799,7 @@
                 let passDate = true, passType = true;
                 if (startDate) passDate = passDate && (item.date >= startDate);
                 if (endDate) passDate = passDate && (item.date <= endDate);
-                if (typeFilter && typeFilter !== 'الكل') passType = (item.type === typeFilter);
+                if (typeFilter !== 'الكل') passType = (item.type === typeFilter);
                 return passDate && passType;
             });
 
@@ -934,8 +810,8 @@
                 if(currentUser && currentUser.role === 'admin') {
                     actionButtons = `
                         <td class="border border-gray-300 p-2 admin-only" data-html2canvas-ignore="true">
-                            <button type="button" onclick="initiateEdit('${item.id}')" class="text-blue-600 mx-1">✏️</button>
-                            <button type="button" onclick="deleteRecord('${item.id}')" class="text-red-600 mx-1">❌</button>
+                            <button onclick="initiateEdit('${item.id}')" class="text-blue-600 mx-1">✏️</button>
+                            <button onclick="deleteRecord('${item.id}')" class="text-red-600 mx-1">❌</button>
                         </td>
                     `;
                 }
@@ -953,6 +829,7 @@
                 `;
             });
 
+            // تجميع الكميات وعدد الشاحنات حسب الصنف للمعاملات المفعلة والمفلترة مع تنسيق الأرقام بالفواصل
             const totals = {};
             filteredData.forEach(item => {
                 if (totals[item.type] === undefined) {
@@ -977,7 +854,7 @@
             }
 
             if (Object.keys(totals).length === 0) {
-                summaryBody.innerHTML = `<tr><td colspan="3" class="border border-gray-300 p-2 text-gray-500">لا توجد حركات مسجلة</td></tr>`;
+                summaryBody.innerHTML = `<tr><td colspan="3" class="border border-gray-300 p-2 text-gray-500">لا توجد حركات مسجلة لهذه الفترة</td></tr>`;
             }
             
             updateExportFooter();
@@ -1024,10 +901,8 @@
         function updateExportFooter() {
             if(currentUser) {
                 const now = new Date();
-                const footerUser = document.getElementById('footerUser');
-                const footerTime = document.getElementById('footerTime');
-                if(footerUser) footerUser.innerText = `طُبع بواسطة: ${currentUser.name}`;
-                if(footerTime) footerTime.innerText = `تاريخ ووقت الاستخراج: ${now.toLocaleString('ar-EG')}`;
+                document.getElementById('footerUser').innerText = `طُبع بواسطة: ${currentUser.name}`;
+                document.getElementById('footerTime').innerText = `تاريخ ووقت الاستخراج: ${now.toLocaleString('ar-EG')}`;
             }
         }
 
@@ -1049,7 +924,6 @@
             return "تقرير_كميات_" + periodStr;
         }
 
-        // دالة تصدير Excel مطابقة تماماً لتنسيق وترتيب أعمدة الـ PDF
         function exportExcel(tableId) {
             updateExportFooter();
             const periodText = document.getElementById('reportPeriodDisplay').innerText;
@@ -1074,19 +948,12 @@
                 let passDate = true, passType = true;
                 if (startDate) passDate = passDate && (item.date >= startDate);
                 if (endDate) passDate = passDate && (item.date <= endDate);
-                if (typeFilter && typeFilter !== 'الكل') passType = (item.type === typeFilter);
+                if (typeFilter !== 'الكل') passType = (item.type === typeFilter);
                 return passDate && passType;
             });
 
             activeData.forEach(item => {
-                wsData.push([
-                    item.serialNo || '', 
-                    item.date, 
-                    item.beneficiary, 
-                    item.type, 
-                    formatNumber(item.trucks || 1) + " شاحنة", 
-                    `${formatNumber(item.quantity)} ${item.unit || ''}`
-                ]);
+                wsData.push([item.serialNo || '', item.date, item.beneficiary, item.type, formatNumber(item.trucks || 1) + " شاحنة", `${formatNumber(item.quantity)} ${item.unit || ''}`]);
             });
 
             wsData.push([""]);
@@ -1110,7 +977,6 @@
 
             const wb = XLSX.utils.book_new();
             const ws = XLSX.utils.aoa_to_sheet(wsData);
-            ws['!rtl'] = true;
             XLSX.utils.book_append_sheet(wb, ws, "التقرير");
             XLSX.writeFile(wb, fileName + ".xlsx");
         }
@@ -1139,19 +1005,12 @@
                 let passDate = true, passType = true;
                 if (startDate) passDate = passDate && (item.date >= startDate);
                 if (endDate) passDate = passDate && (item.date <= endDate);
-                if (typeFilter && typeFilter !== 'الكل') passType = (item.type === typeFilter);
+                if (typeFilter !== 'الكل') passType = (item.type === typeFilter);
                 return passDate && passType;
             });
 
             activeData.forEach(item => {
-                wsData.push([
-                    item.serialNo || '', 
-                    item.date, 
-                    item.beneficiary, 
-                    item.type, 
-                    formatNumber(item.trucks || 1) + " شاحنة", 
-                    `${formatNumber(item.quantity)} ${item.unit || ''}`
-                ]);
+                wsData.push([item.serialNo || '', item.date, item.beneficiary, item.type, formatNumber(item.trucks || 1) + " شاحنة", `${formatNumber(item.quantity)} ${item.unit || ''}`]);
             });
 
             wsData.push([""]);
@@ -1175,7 +1034,6 @@
 
             const wb = XLSX.utils.book_new();
             const ws = XLSX.utils.aoa_to_sheet(wsData);
-            ws['!rtl'] = true;
             XLSX.utils.book_append_sheet(wb, ws, "التقرير");
 
             let wbout = XLSX.write(wb, {bookType:'xlsx', type:'array'});
