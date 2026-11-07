@@ -123,11 +123,7 @@
                                 <label class="block text-sm font-medium mb-1">الكمية</label>
                                 <div class="flex">
                                     <input type="number" id="quantityInput" placeholder="الرقم" required class="w-2/3 border p-2 rounded-r focus:ring focus:ring-blue-200" step="any">
-                                    <select id="unitInput" class="w-1/3 border-y border-l p-2 rounded-l bg-gray-50 focus:ring focus:ring-blue-200 text-xs">
-                                        <option value="لتر">لتر</option>
-                                        <option value="طن">طن</option>
-                                        <option value="كوب">كوب</option>
-                                    </select>
+                                    <input type="text" id="unitInput" readonly class="w-1/3 border-y border-l p-2 rounded-l bg-gray-100 text-center text-xs font-bold" value="لتر">
                                 </div>
                             </div>
                         </div>
@@ -145,8 +141,18 @@
 
             <div id="report-tab" class="hidden" style="display: none;">
                 <div class="bg-white p-4 rounded-lg shadow-md mb-4">
-                    <h2 class="text-lg font-semibold mb-3 border-b pb-2">فلترة التقرير</h2>
+                    <h2 class="text-lg font-semibold mb-3 border-b pb-2">فلترة واستيراد البيانات</h2>
                     
+                    <!-- زر استيراد ملف Excel القديم مع منع التكرار -->
+                    <div class="mb-4 bg-blue-50 border border-blue-200 p-3 rounded-lg flex items-center justify-between">
+                        <div>
+                            <span class="text-xs font-bold text-blue-900 block">استيراد بيانات سابقة من ملف Excel</span>
+                            <span class="text-[11px] text-gray-600">سيتم دمج البيانات تلقائياً بدون تكرار السجلات</span>
+                        </div>
+                        <input type="file" id="excelFileImporter" accept=".xlsx, .xls" class="hidden" onchange="importExcelFile(event)">
+                        <button onclick="document.getElementById('excelFileImporter').click()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-3 py-2 rounded shadow">اختيار ورفع ملف Excel</button>
+                    </div>
+
                     <div class="flex gap-2 mb-3">
                         <div class="w-1/3">
                             <label class="block text-xs font-medium mb-1">نوع الوقود</label>
@@ -524,16 +530,18 @@
         function renderUsersTable() {
             const users = JSON.parse(localStorage.getItem('appUsers')) || [];
             const tbody = document.getElementById('usersListTable');
-            tbody.innerHTML = users.map(u => `
-                <tr>
-                    <td class="border p-1">${u.id}</td>
-                    <td class="border p-1">${u.name}</td>
-                    <td class="border p-1">${u.role === 'admin' ? 'مدير' : (u.role === 'entry' ? 'مدخل' : 'مستعرض')}</td>
-                    <td class="border p-1">
-                        ${u.id !== 'admin' && u.id !== currentUser.id ? `<button onclick="deleteUser('${u.id}')" class="text-red-600 font-bold">X</button>` : '-'}
-                    </td>
-                </tr>
-            `).join('');
+            if(tbody) {
+                tbody.innerHTML = users.map(u => `
+                    <tr>
+                        <td class="border p-1">${u.id}</td>
+                        <td class="border p-1">${u.name}</td>
+                        <td class="border p-1">${u.role === 'admin' ? 'مدير' : (u.role === 'entry' ? 'مدخل' : 'مستعرض')}</td>
+                        <td class="border p-1">
+                            ${u.id !== 'admin' && u.id !== currentUser.id ? `<button onclick="deleteUser('${u.id}')" class="text-red-600 font-bold">X</button>` : '-'}
+                        </td>
+                    </tr>
+                `).join('');
+            }
         }
 
         async function addUser() {
@@ -611,24 +619,34 @@
             const types = JSON.parse(localStorage.getItem('fuelTypes')) || [];
             const benfs = JSON.parse(localStorage.getItem('beneficiaries')) || [];
             
-            document.getElementById('typeInput').innerHTML = types.map(t => `<option value="${t}">${t}</option>`).join('');
-            document.getElementById('beneficiaryInput').innerHTML = benfs.map(b => `<option value="${b}">${b}</option>`).join('');
-            document.getElementById('typeFilter').innerHTML = `<option value="الكل">الكل</option>` + types.map(t => `<option value="${t}">${t}</option>`).join('');
+            const typeSelect = document.getElementById('typeInput');
+            const benfSelect = document.getElementById('beneficiaryInput');
+            const typeFilter = document.getElementById('typeFilter');
+
+            if(typeSelect) typeSelect.innerHTML = types.map(t => `<option value="${t}">${t}</option>`).join('');
+            if(benfSelect) benfSelect.innerHTML = benfs.map(b => `<option value="${b}">${b}</option>`).join('');
+            if(typeFilter) typeFilter.innerHTML = `<option value="الكل">الكل</option>` + types.map(t => `<option value="${t}">${t}</option>`).join('');
             
             updateUnitBasedOnType();
         }
 
         function updateUnitBasedOnType() {
             const typeValue = document.getElementById('typeInput').value || "";
-            document.getElementById('unitInput').value = (typeValue.includes("غاز") || typeValue.includes("الغاز")) ? "طن" : "لتر";
+            const unitInput = document.getElementById('unitInput');
+            if(unitInput) {
+                unitInput.value = (typeValue.includes("غاز") || typeValue.includes("الغاز")) ? "طن" : "لتر";
+            }
         }
 
         function renderSettingsList(key, listId) {
             const items = JSON.parse(localStorage.getItem(key)) || [];
-            document.getElementById(listId).innerHTML = items.map((item, i) => `
-                <li class="flex justify-between p-2 text-sm"><span>${item}</span>
-                <button onclick="deleteSetting('${key}', ${i})" class="text-red-500 font-bold">X</button></li>
-            `).join('');
+            const listEl = document.getElementById(listId);
+            if(listEl) {
+                listEl.innerHTML = items.map((item, i) => `
+                    <li class="flex justify-between p-2 text-sm"><span>${item}</span>
+                    <button onclick="deleteSetting('${key}', ${i})" class="text-red-500 font-bold">X</button></li>
+                `).join('');
+            }
         }
 
         async function addSetting(key, inputId) {
@@ -803,6 +821,84 @@
             }
         }
 
+        // دالة استيراد ملف Excel مع منع تكرار السجلات نهائياً
+        async function importExcelFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const jsonRows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                    let existingData = JSON.parse(localStorage.getItem('fuelData')) || [];
+                    let addedCount = 0;
+
+                    // تخطي صفوف العناوين والبحث عن صف بيانات الحركات
+                    for (let i = 0; i < jsonRows.length; i++) {
+                        let row = jsonRows[i];
+                        if (!row || row.length < 6) continue;
+                        
+                        // نتأكد أن الصف يحتوي على رقم معاملة وتاريخ وصنف
+                        let serial = row[0];
+                        let date = row[1];
+                        let beneficiary = row[2];
+                        let type = row[3];
+                        let trucksStr = row[4];
+                        let qtyStr = row[5];
+
+                        if (!date || !type || isNaN(serial)) continue;
+
+                        let trucks = parseInt(String(trucksStr).replace(/[^0-9]/g, '')) || 1;
+                        
+                        // استخراج الرقم فقط من نص الكمية (مثل "600,000 لتر" أو "101,740 طن")
+                        let cleanQty = parseFloat(String(qtyStr).replace(/,/g, '').replace(/[^0-9.]/g, '')) || 0;
+                        let unit = String(qtyStr).includes('طن') ? 'طن' : 'لتر';
+
+                        // منع التكرار: التحقق مما إذا كانت المعاملة موجودة مسبقاً بنفس التاريخ والجهة والكمية
+                        let isDuplicate = existingData.some(item => 
+                            item.date === String(date) && 
+                            item.beneficiary === String(beneficiary) && 
+                            item.type === String(type) && 
+                            Math.abs(item.quantity - cleanQty) < 0.01
+                        );
+
+                        if (!isDuplicate && cleanQty > 0) {
+                            const newRecord = {
+                                id: (Date.now() + Math.random()).toString(),
+                                serialNo: existingData.filter(r => !r.isDeleted).length + 1,
+                                date: String(date),
+                                beneficiary: String(beneficiary),
+                                type: String(type),
+                                trucks: trucks,
+                                quantity: cleanQty,
+                                unit: unit,
+                                addedBy: currentUser ? currentUser.name : 'استيراد Excel',
+                                isDeleted: false,
+                                status: 'active'
+                            };
+                            existingData.push(newRecord);
+                            addedCount++;
+                        }
+                    }
+
+                    localStorage.setItem('fuelData', JSON.stringify(existingData));
+                    await saveCloudData('fuelData', existingData);
+
+                    alert(`تم استيراد الملف بنجاح! تمت إضافة ${addedCount} سجل جديد بدون تكرار البيانات السابقة.`);
+                    generateReport();
+                } catch (err) {
+                    console.error(err);
+                    alert("حدث خطأ أثناء قراءة ملف الـ Excel. تأكد من تطابق هيكل الملف.");
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
         async function generateReport() {
             await loadCloudToLocal();
             const startDate = document.getElementById('startDate').value;
@@ -927,8 +1023,10 @@
         function updateExportFooter() {
             if(currentUser) {
                 const now = new Date();
-                document.getElementById('footerUser').innerText = `طُبع بواسطة: ${currentUser.name}`;
-                document.getElementById('footerTime').innerText = `تاريخ ووقت الاستخراج: ${now.toLocaleString('ar-EG')}`;
+                const footerUser = document.getElementById('footerUser');
+                const footerTime = document.getElementById('footerTime');
+                if(footerUser) footerUser.innerText = `طُبع بواسطة: ${currentUser.name}`;
+                if(footerTime) footerTime.innerText = `تاريخ ووقت الاستخراج: ${now.toLocaleString('ar-EG')}`;
             }
         }
 
@@ -950,7 +1048,7 @@
             return "تقرير_كميات_" + periodStr;
         }
 
-        // دالة تصدير Excel مصححة بالكامل لتطابق تنسيق وترتيب أعمدة الـ PDF تماماً
+        // دالة تصدير Excel مطابقة تماماً لتقرير PDF وبترتيب أعمدة صحيح
         function exportExcel(tableId) {
             updateExportFooter();
             const periodText = document.getElementById('reportPeriodDisplay').innerText;
@@ -1012,7 +1110,6 @@
             const wb = XLSX.utils.book_new();
             const ws = XLSX.utils.aoa_to_sheet(wsData);
             
-            // ضبط اتجاه الورقة من اليمين لليسار ليتطابق مع الـ PDF تماماً
             ws['!rtl'] = true;
 
             XLSX.utils.book_append_sheet(wb, ws, "التقرير");
