@@ -141,16 +141,15 @@
 
             <div id="report-tab" class="hidden" style="display: none;">
                 <div class="bg-white p-4 rounded-lg shadow-md mb-4">
-                    <h2 class="text-lg font-semibold mb-3 border-b pb-2">فلترة واستيراد البيانات</h2>
+                    <h2 class="text-lg font-semibold mb-3 border-b pb-2">فلترة واستيراد التقارير</h2>
                     
-                    <!-- زر استيراد ملف Excel القديم مع منع التكرار -->
                     <div class="mb-4 bg-blue-50 border border-blue-200 p-3 rounded-lg flex items-center justify-between">
                         <div>
                             <span class="text-xs font-bold text-blue-900 block">استيراد بيانات سابقة من ملف Excel</span>
-                            <span class="text-[11px] text-gray-600">سيتم دمج البيانات تلقائياً بدون تكرار السجلات</span>
+                            <span class="text-[11px] text-gray-600">دمج البيانات القديمة والجديدة بدون تكرار</span>
                         </div>
                         <input type="file" id="excelFileImporter" accept=".xlsx, .xls" class="hidden" onchange="importExcelFile(event)">
-                        <button onclick="document.getElementById('excelFileImporter').click()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-3 py-2 rounded shadow">اختيار ورفع ملف Excel</button>
+                        <button type="button" onclick="document.getElementById('excelFileImporter').click()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-3 py-2 rounded shadow">رفع ملف Excel القديم</button>
                     </div>
 
                     <div class="flex gap-2 mb-3">
@@ -260,7 +259,7 @@
                             <option value="admin">مدير نظام</option>
                         </select>
                     </div>
-                    <button onclick="addUser()" class="w-full bg-blue-600 text-white font-bold py-2 rounded mb-3">إضافة مستخدم</button>
+                    <button type="button" onclick="addUser()" class="w-full bg-blue-600 text-white font-bold py-2 rounded mb-3">إضافة مستخدم</button>
                     
                     <div class="overflow-x-auto">
                         <table class="w-full text-xs text-center border-collapse border">
@@ -281,7 +280,7 @@
                     <h2 class="text-sm font-semibold mb-2">إدارة الجهات المستفيدة</h2>
                     <div class="flex gap-2 mb-2">
                         <input type="text" id="newBeneficiary" placeholder="اسم الجهة" class="w-full border p-2 rounded text-sm">
-                        <button onclick="addSetting('beneficiaries', 'newBeneficiary')" class="bg-gray-800 text-white px-3 rounded text-sm shrink-0">إضافة</button>
+                        <button type="button" onclick="addSetting('beneficiaries', 'newBeneficiary')" class="bg-gray-800 text-white px-3 rounded text-sm shrink-0">إضافة</button>
                     </div>
                     <ul id="beneficiariesList" class="divide-y border rounded max-h-32 overflow-y-auto"></ul>
                 </div>
@@ -290,7 +289,7 @@
                     <h2 class="text-sm font-semibold mb-2">إدارة أنواع الوقود</h2>
                     <div class="flex gap-2 mb-2">
                         <input type="text" id="newFuelType" placeholder="نوع الوقود" class="w-full border p-2 rounded text-sm">
-                        <button onclick="addSetting('fuelTypes', 'newFuelType')" class="bg-gray-800 text-white px-3 rounded text-sm shrink-0">إضافة</button>
+                        <button type="button" onclick="addSetting('fuelTypes', 'newFuelType')" class="bg-gray-800 text-white px-3 rounded text-sm shrink-0">إضافة</button>
                     </div>
                     <ul id="fuelTypesList" class="divide-y border rounded max-h-32 overflow-y-auto"></ul>
                 </div>
@@ -527,17 +526,19 @@
             }
         }
 
+        // تم إصلاح تكرار الجدول جذرياً بتفريغه أولاً
         function renderUsersTable() {
             const users = JSON.parse(localStorage.getItem('appUsers')) || [];
             const tbody = document.getElementById('usersListTable');
             if(tbody) {
+                tbody.innerHTML = ""; 
                 tbody.innerHTML = users.map(u => `
                     <tr>
                         <td class="border p-1">${u.id}</td>
                         <td class="border p-1">${u.name}</td>
                         <td class="border p-1">${u.role === 'admin' ? 'مدير' : (u.role === 'entry' ? 'مدخل' : 'مستعرض')}</td>
                         <td class="border p-1">
-                            ${u.id !== 'admin' && u.id !== currentUser.id ? `<button onclick="deleteUser('${u.id}')" class="text-red-600 font-bold">X</button>` : '-'}
+                            ${u.id !== 'admin' && u.id !== currentUser.id ? `<button type="button" onclick="deleteUser('${u.id}')" class="text-red-600 font-bold">X</button>` : '-'}
                         </td>
                     </tr>
                 `).join('');
@@ -644,7 +645,7 @@
             if(listEl) {
                 listEl.innerHTML = items.map((item, i) => `
                     <li class="flex justify-between p-2 text-sm"><span>${item}</span>
-                    <button onclick="deleteSetting('${key}', ${i})" class="text-red-500 font-bold">X</button></li>
+                    <button type="button" onclick="deleteSetting('${key}', ${i})" class="text-red-500 font-bold">X</button></li>
                 `).join('');
             }
         }
@@ -821,7 +822,7 @@
             }
         }
 
-        // دالة استيراد ملف Excel مع منع تكرار السجلات نهائياً
+        // دالة استيراد ملف Excel مع منع تكرار السجلات
         async function importExcelFile(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -838,12 +839,10 @@
                     let existingData = JSON.parse(localStorage.getItem('fuelData')) || [];
                     let addedCount = 0;
 
-                    // تخطي صفوف العناوين والبحث عن صف بيانات الحركات
                     for (let i = 0; i < jsonRows.length; i++) {
                         let row = jsonRows[i];
                         if (!row || row.length < 6) continue;
                         
-                        // نتأكد أن الصف يحتوي على رقم معاملة وتاريخ وصنف
                         let serial = row[0];
                         let date = row[1];
                         let beneficiary = row[2];
@@ -854,12 +853,9 @@
                         if (!date || !type || isNaN(serial)) continue;
 
                         let trucks = parseInt(String(trucksStr).replace(/[^0-9]/g, '')) || 1;
-                        
-                        // استخراج الرقم فقط من نص الكمية (مثل "600,000 لتر" أو "101,740 طن")
                         let cleanQty = parseFloat(String(qtyStr).replace(/,/g, '').replace(/[^0-9.]/g, '')) || 0;
                         let unit = String(qtyStr).includes('طن') ? 'طن' : 'لتر';
 
-                        // منع التكرار: التحقق مما إذا كانت المعاملة موجودة مسبقاً بنفس التاريخ والجهة والكمية
                         let isDuplicate = existingData.some(item => 
                             item.date === String(date) && 
                             item.beneficiary === String(beneficiary) && 
@@ -889,11 +885,11 @@
                     localStorage.setItem('fuelData', JSON.stringify(existingData));
                     await saveCloudData('fuelData', existingData);
 
-                    alert(`تم استيراد الملف بنجاح! تمت إضافة ${addedCount} سجل جديد بدون تكرار البيانات السابقة.`);
+                    alert(`تم استيراد الملف بنجاح! تمت إضافة ${addedCount} سجل جديد بدون تكرار البيانات.`);
                     generateReport();
                 } catch (err) {
                     console.error(err);
-                    alert("حدث خطأ أثناء قراءة ملف الـ Excel. تأكد من تطابق هيكل الملف.");
+                    alert("حدث خطأ أثناء قراءة ملف الـ Excel.");
                 }
             };
             reader.readAsArrayBuffer(file);
@@ -933,8 +929,8 @@
                 if(currentUser && currentUser.role === 'admin') {
                     actionButtons = `
                         <td class="border border-gray-300 p-2 admin-only" data-html2canvas-ignore="true">
-                            <button onclick="initiateEdit('${item.id}')" class="text-blue-600 mx-1">✏️</button>
-                            <button onclick="deleteRecord('${item.id}')" class="text-red-600 mx-1">❌</button>
+                            <button type="button" onclick="initiateEdit('${item.id}')" class="text-blue-600 mx-1">✏️</button>
+                            <button type="button" onclick="deleteRecord('${item.id}')" class="text-red-600 mx-1">❌</button>
                         </td>
                     `;
                 }
@@ -1048,7 +1044,7 @@
             return "تقرير_كميات_" + periodStr;
         }
 
-        // دالة تصدير Excel مطابقة تماماً لتقرير PDF وبترتيب أعمدة صحيح
+        // دالة تصدير Excel مطابقة تماماً لتنسيق الـ PDF (بدءاً من رقم المعاملة وانتهاءً بالكمية)
         function exportExcel(tableId) {
             updateExportFooter();
             const periodText = document.getElementById('reportPeriodDisplay').innerText;
