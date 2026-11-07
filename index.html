@@ -358,16 +358,18 @@
                 beneficiaries = ["UNOPS"];
             }
 
-            // تنظيف التكرار من مصفوفة المستخدمين محلياً
+            // تصفية وحذف أي مستخدمين مكررين نهائياً
             users = Array.from(new Map(users.map(u => [u.id, u])).values());
+            fuelTypes = [...new Set(fuelTypes)];
+            beneficiaries = [...new Set(beneficiaries)];
 
-            const cloudUsers = await getCloudData('appUsers');
-            const cloudFuelTypes = await getCloudData('fuelTypes');
-            const cloudBeneficiaries = await getCloudData('beneficiaries');
+            localStorage.setItem('appUsers', JSON.stringify(users));
+            localStorage.setItem('fuelTypes', JSON.stringify(fuelTypes));
+            localStorage.setItem('beneficiaries', JSON.stringify(beneficiaries));
 
-            if (!cloudUsers) await saveCloudData('appUsers', users);
-            if (!cloudFuelTypes) await saveCloudData('fuelTypes', fuelTypes);
-            if (!cloudBeneficiaries) await saveCloudData('beneficiaries', beneficiaries);
+            await saveCloudData('appUsers', users);
+            await saveCloudData('fuelTypes', fuelTypes);
+            await saveCloudData('beneficiaries', beneficiaries);
         }
 
         async function loadCloudToLocal() {
@@ -392,20 +394,6 @@
             if (finalFuelData.length > 0) {
                 await saveCloudData('fuelData', finalFuelData);
             }
-
-            // مزامنة وتنظيف القوائم
-            ['appUsers', 'fuelTypes', 'beneficiaries'].forEach(async (key) => {
-                let localVal = JSON.parse(localStorage.getItem(key)) || [];
-                let cloudVal = await getCloudData(key) || [];
-                if (cloudVal && !Array.isArray(cloudVal)) cloudVal = Object.values(cloudVal);
-                
-                let merged = [...new Set([...localVal, ...(Array.isArray(cloudVal) ? cloudVal : [])])];
-                if(key === 'appUsers') {
-                    merged = Array.from(new Map(merged.map(u => [u.id, u])).values());
-                }
-                localStorage.setItem(key, JSON.stringify(merged));
-                await saveCloudData(key, merged);
-            });
         }
 
         window.initCloudSystem = async function() {
@@ -534,7 +522,7 @@
             }
         }
 
-        // تفريغ الجدول تماماً وإزالة التكرار
+        // تفريغ الجدول بالكامل وإزالة التكرار نهائياً
         function renderUsersTable() {
             let users = JSON.parse(localStorage.getItem('appUsers')) || [];
             users = Array.from(new Map(users.map(u => [u.id, u])).values());
@@ -580,6 +568,7 @@
             if(confirm("تأكيد حذف المستخدم؟")) {
                 let users = JSON.parse(localStorage.getItem('appUsers')) || [];
                 users = users.filter(u => u.id !== id);
+                users = Array.from(new Map(users.map(u => [u.id, u])).values());
                 localStorage.setItem('appUsers', JSON.stringify(users));
                 await saveCloudData('appUsers', users);
                 renderUsersTable();
@@ -627,9 +616,12 @@
         }
 
         function updateSelectOptions() {
-            const types = JSON.parse(localStorage.getItem('fuelTypes')) || [];
-            const benfs = JSON.parse(localStorage.getItem('beneficiaries')) || [];
+            let types = JSON.parse(localStorage.getItem('fuelTypes')) || [];
+            let benfs = JSON.parse(localStorage.getItem('beneficiaries')) || [];
             
+            types = [...new Set(types)];
+            benfs = [...new Set(benfs)];
+
             const typeSelect = document.getElementById('typeInput');
             const benfSelect = document.getElementById('beneficiaryInput');
             const typeFilter = document.getElementById('typeFilter');
@@ -650,7 +642,8 @@
         }
 
         function renderSettingsList(key, listId) {
-            const items = JSON.parse(localStorage.getItem(key)) || [];
+            let items = JSON.parse(localStorage.getItem(key)) || [];
+            items = [...new Set(items)];
             const listEl = document.getElementById(listId);
             if(listEl) {
                 listEl.innerHTML = items.map((item, i) => `
@@ -666,6 +659,7 @@
             let items = JSON.parse(localStorage.getItem(key)) || [];
             if(!items.includes(val)) {
                 items.push(val);
+                items = [...new Set(items)];
                 localStorage.setItem(key, JSON.stringify(items));
                 await saveCloudData(key, items);
                 document.getElementById(inputId).value = '';
@@ -694,6 +688,7 @@
 
             if(confirm("هل أنت متأكد من الحذف؟")) {
                 items.splice(i, 1);
+                items = [...new Set(items)];
                 localStorage.setItem(key, JSON.stringify(items));
                 await saveCloudData(key, items);
                 renderSettingsList(key, key === 'fuelTypes' ? 'fuelTypesList' : 'beneficiariesList');
@@ -832,7 +827,7 @@
             }
         }
 
-        // استيراد ملف Excel القديم مع منع التكرار
+        // استيراد ملف Excel مع منع التكرار تماماً
         async function importExcelFile(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -1054,7 +1049,7 @@
             return "تقرير_كميات_" + periodStr;
         }
 
-        // دالة تصدير Excel مطابقة تماماً لتنسيق الـ PDF
+        // دالة تصدير Excel مطابقة تماماً لتنسيق وترتيب أعمدة الـ PDF
         function exportExcel(tableId) {
             updateExportFooter();
             const periodText = document.getElementById('reportPeriodDisplay').innerText;
