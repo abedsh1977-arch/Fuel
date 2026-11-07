@@ -312,7 +312,12 @@
             if (!window.fbDb) return null;
             try {
                 const snapshot = await window.fbGet(window.fbChild(window.fbRef(window.fbDb), path));
-                return snapshot.exists() ? snapshot.val() : null;
+                if (!snapshot.exists()) return null;
+                let val = snapshot.val();
+                if (val && typeof val === 'object' && !Array.isArray(val)) {
+                    val = Object.values(val);
+                }
+                return val;
             } catch (e) {
                 console.error(e);
                 return null;
@@ -365,7 +370,6 @@
                 cloudFuelData = Object.values(cloudFuelData);
             }
 
-            // دمج ذكي وآمن للبيانات المحلية والبيانات السحابية عبر معرف المعاملة لضمان عدم ضياع أي سجل حديث
             const mergedMap = new Map();
             localFuelData.forEach(item => mergedMap.set(item.id, item));
             if (Array.isArray(cloudFuelData)) {
@@ -379,7 +383,6 @@
                 await saveCloudData('fuelData', finalFuelData);
             }
 
-            // تحديث قوائم النظام
             ['appUsers', 'fuelTypes', 'beneficiaries'].forEach(async (key) => {
                 let localVal = JSON.parse(localStorage.getItem(key)) || [];
                 let cloudVal = await getCloudData(key) || [];
