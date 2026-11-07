@@ -2,10 +2,11 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>تطبيق إدارة المحروقات</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- مكتبة SheetJS المزودة بدعم التنسيقات والحدود والألوان -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     
     <script type="module">
@@ -38,91 +39,155 @@
     </script>
 
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f3f4f6; }
-        .tab-btn.active { border-bottom: 4px solid #2563eb; color: #2563eb; font-weight: bold; }
-        .hidden { display: none !important; }
-        th, td { padding: 8px 12px !important; }
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap');
         
+        body { 
+            font-family: 'Cairo', 'Segoe UI', Tahoma, sans-serif; 
+            background-color: #f1f5f9; 
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .hidden { display: none !important; }
+        
+        /* تصميم شريط التنقل الحديث للهاتف وأجهزة الكمبيوتر */
+        .nav-pill {
+            transition: all 0.2s ease;
+            border-bottom: 3px solid transparent;
+        }
+        .nav-pill.active {
+            color: #1d4ed8;
+            border-bottom-color: #1d4ed8;
+            background-color: #eff6ff;
+            font-weight: 700;
+        }
+
+        /* ضبط مسافات الكلمات ومنع الالتصاق في التقرير */
+        #printable-report, #printable-report * {
+            letter-spacing: 0px !important;
+            word-spacing: normal !important;
+            font-family: 'Cairo', 'Segoe UI', Tahoma, sans-serif !important;
+        }
+
+        #printable-report th, #printable-report td { 
+            padding: 8px 10px !important; 
+        }
+
+        /* منع قص الصفوف وتكرار الترويسة في الـ PDF والطباعة */
+        #printable-report table { 
+            page-break-inside: auto; 
+            border-collapse: collapse; 
+            width: 100%;
+        }
+        #printable-report tr { 
+            page-break-inside: avoid !important; 
+            break-inside: avoid !important; 
+            page-break-after: auto; 
+        }
+        #printable-report thead { 
+            display: table-header-group !important; 
+        }
+        #printable-report tfoot { 
+            display: table-footer-group !important; 
+        }
+        .avoid-break {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+        }
+
         @media print {
-            body { background: white; }
-            no-print { display: none; }
-            table { page-break-inside: auto; }
-            tr { page-break-inside: avoid; page-break-after: auto; }
-            thead { display: table-header-group; }
-            tfoot { display: table-footer-group; }
+            body { background: white !important; padding: 0 !important; margin: 0 !important; }
+            .no-print { display: none !important; }
+            #main-app { display: block !important; }
+            #report-tab { display: block !important; }
+            #printable-report { 
+                box-shadow: none !important; 
+                border: none !important; 
+                margin: 0 !important; 
+                padding: 0 !important; 
+                width: 100% !important;
+            }
+            .admin-only { display: none !important; }
         }
 
         @page {
             size: A4 portrait;
-            margin: 15mm;
-            @bottom-right {
-                content: "صفحة " counter(page) " من " counter(pages);
-                font-size: 11px;
-                font-family: sans-serif;
-            }
+            margin: 12mm;
         }
     </style>
 </head>
-<body class="bg-gray-100 text-gray-800 pb-10">
+<body class="bg-slate-100 text-slate-800 pb-20 md:pb-10">
 
-    <header class="bg-blue-600 text-white p-4 shadow-md flex justify-between items-center">
-        <h1 class="text-xl font-bold">إدارة المحروقات (سحابي)</h1>
-        <div id="userInfo" class="hidden text-sm items-center gap-4" style="display: none;">
-            <span id="userNameDisplay"></span>
-            <button onclick="logout()" class="bg-red-500 hover:bg-red-600 px-3 py-1 rounded font-bold">خروج</button>
+    <!-- الشريط العلوي بتصميم تطبيق هاتف عصري -->
+    <header class="bg-gradient-to-l from-blue-700 to-blue-600 text-white px-4 py-3.5 shadow-lg sticky top-0 z-30 flex justify-between items-center no-print">
+        <div class="flex items-center gap-2">
+            <div class="w-2.5 h-2.5 bg-emerald-400 rounded-full animate-pulse"></div>
+            <h1 class="text-lg md:text-xl font-bold tracking-wide">إدارة المحروقات (سحابي)</h1>
+        </div>
+        <div id="userInfo" class="hidden text-xs md:text-sm items-center gap-3" style="display: none;">
+            <span id="userNameDisplay" class="bg-blue-800/60 px-3 py-1 rounded-full font-semibold"></span>
+            <button onclick="logout()" class="bg-red-500 hover:bg-red-600 active:scale-95 transition px-3 py-1 rounded-lg font-bold shadow-sm">خروج</button>
         </div>
     </header>
 
-    <div id="login-screen" class="max-w-sm mx-auto mt-20 bg-white p-8 rounded-lg shadow-md block">
-        <h2 class="text-xl font-bold mb-6 text-center text-blue-700">تسجيل الدخول</h2>
-        <div class="mb-4">
-            <label class="block text-sm font-medium mb-1">رقم الهوية (اسم المستخدم)</label>
-            <input type="text" id="loginId" class="w-full border p-2 rounded focus:ring focus:ring-blue-200">
+    <!-- شاشة تسجيل الدخول -->
+    <div id="login-screen" class="max-w-sm mx-auto mt-16 px-4 no-print block">
+        <div class="bg-white p-7 rounded-2xl shadow-xl border border-slate-100">
+            <div class="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 font-bold text-2xl shadow-inner">⛽</div>
+            <h2 class="text-xl font-bold mb-6 text-center text-slate-800">تسجيل الدخول</h2>
+            <div class="mb-4">
+                <label class="block text-xs font-bold text-slate-600 mb-1.5">رقم الهوية (اسم المستخدم)</label>
+                <input type="text" id="loginId" class="w-full border border-slate-300 p-3 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm">
+            </div>
+            <div class="mb-6">
+                <label class="block text-xs font-bold text-slate-600 mb-1.5">كلمة المرور</label>
+                <input type="password" id="loginPass" class="w-full border border-slate-300 p-3 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm">
+            </div>
+            <button onclick="login()" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 active:scale-98 transition shadow-md">دخول للنظام</button>
         </div>
-        <div class="mb-6">
-            <label class="block text-sm font-medium mb-1">كلمة المرور</label>
-            <input type="password" id="loginPass" class="w-full border p-2 rounded focus:ring focus:ring-blue-200">
-        </div>
-        <button onclick="login()" class="w-full bg-blue-600 text-white font-bold py-2 rounded hover:bg-blue-700">دخول</button>
     </div>
 
+    <!-- التطبيق الرئيسي -->
     <div id="main-app" class="hidden" style="display: none;">
         
-        <div class="flex justify-around bg-white shadow-sm mb-4 text-sm font-medium" id="nav-menu">
-            <button onclick="switchTab('input-tab')" id="btn-input-tab" class="tab-btn active w-full py-3 text-gray-600 hidden" style="display: none;">تسجيل شحنة</button>
-            <button onclick="switchTab('report-tab')" id="btn-report-tab" class="tab-btn w-full py-3 text-gray-600">التقارير</button>
-            <button onclick="switchTab('audit-tab')" id="btn-audit-tab" class="tab-btn w-full py-3 text-gray-600 hidden" style="display: none;">سجل المحذوفات</button>
-            <button onclick="switchTab('settings-tab')" id="btn-settings-tab" class="tab-btn w-full py-3 text-gray-600 hidden" style="display: none;">الإعدادات</button>
+        <!-- قائمة التنقل المتجاوبة للهاتف والكمبيوتر -->
+        <div class="bg-white shadow-sm sticky top-[56px] z-20 border-b border-slate-200 no-print">
+            <div class="max-w-2xl mx-auto flex justify-around text-xs md:text-sm font-semibold" id="nav-menu">
+                <button onclick="switchTab('input-tab')" id="btn-input-tab" class="nav-pill active w-full py-3.5 text-slate-600 hidden" style="display: none;">➕ تسجيل شحنة</button>
+                <button onclick="switchTab('report-tab')" id="btn-report-tab" class="nav-pill w-full py-3.5 text-slate-600">📊 التقارير</button>
+                <button onclick="switchTab('audit-tab')" id="btn-audit-tab" class="nav-pill w-full py-3.5 text-slate-600 hidden" style="display: none;">🗑️ سجل المحذوفات</button>
+                <button onclick="switchTab('settings-tab')" id="btn-settings-tab" class="nav-pill w-full py-3.5 text-slate-600 hidden" style="display: none;">⚙️ الإعدادات</button>
+            </div>
         </div>
 
-        <div class="max-w-2xl mx-auto p-4">
+        <div class="max-w-2xl mx-auto p-3 md:p-4">
             
-            <div id="input-tab" class="hidden" style="display: none;">
-                <div class="bg-white p-6 rounded-lg shadow-md">
-                    <h2 id="formTitle" class="text-lg font-semibold mb-4 border-b pb-2">تسجيل بيانات جديدة</h2>
+            <!-- تبويب إدخال شحنة -->
+            <div id="input-tab" class="hidden no-print" style="display: none;">
+                <div class="bg-white p-5 md:p-6 rounded-2xl shadow-md border border-slate-100">
+                    <h2 id="formTitle" class="text-base md:text-lg font-bold mb-5 border-b pb-3 text-slate-800">تسجيل بيانات جديدة</h2>
                     <form id="fuelForm" onsubmit="saveData(event)">
                         <input type="hidden" id="editingTxnId" value="">
                         
                         <div class="mb-4">
-                            <label class="block text-sm font-medium mb-1">التاريخ</label>
-                            <input type="date" id="dateInput" required class="w-full border p-2 rounded focus:ring focus:ring-blue-200">
+                            <label class="block text-xs font-bold text-slate-600 mb-1.5">التاريخ</label>
+                            <input type="date" id="dateInput" required class="w-full border border-slate-300 p-2.5 rounded-xl focus:ring-2 focus:ring-blue-500 bg-slate-50 text-sm">
                         </div>
                         
                         <div class="mb-4">
-                            <label class="block text-sm font-medium mb-1">الجهة المستفيدة</label>
-                            <select id="beneficiaryInput" required class="w-full border p-2 rounded focus:ring focus:ring-blue-200"></select>
+                            <label class="block text-xs font-bold text-slate-600 mb-1.5">الجهة المستفيدة</label>
+                            <select id="beneficiaryInput" required class="w-full border border-slate-300 p-2.5 rounded-xl focus:ring-2 focus:ring-blue-500 bg-slate-50 text-sm"></select>
                         </div>
 
-                        <div class="flex gap-3 mb-4">
-                            <div class="w-1/2">
-                                <label class="block text-sm font-medium mb-1">نوع الوقود / الصنف</label>
-                                <select id="typeInput" onchange="updateUnitBasedOnType()" required class="w-full border p-2 rounded focus:ring focus:ring-blue-200"></select>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 mb-1.5">نوع الوقود / الصنف</label>
+                                <select id="typeInput" onchange="updateUnitBasedOnType()" required class="w-full border border-slate-300 p-2.5 rounded-xl focus:ring-2 focus:ring-blue-500 bg-slate-50 text-sm"></select>
                             </div>
-                            <div class="w-1/2">
-                                <label class="block text-sm font-medium mb-1">الكمية</label>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 mb-1.5">الكمية والوحدة</label>
                                 <div class="flex">
-                                    <input type="number" id="quantityInput" placeholder="الرقم" required class="w-2/3 border p-2 rounded-r focus:ring focus:ring-blue-200" step="any">
-                                    <select id="unitInput" class="w-1/3 border-y border-l p-2 rounded-l bg-gray-50 focus:ring focus:ring-blue-200 text-xs">
+                                    <input type="number" id="quantityInput" placeholder="الرقم" required class="w-2/3 border border-slate-300 p-2.5 rounded-r-xl focus:ring-2 focus:ring-blue-500 text-sm" step="any">
+                                    <select id="unitInput" class="w-1/3 border-y border-l border-slate-300 p-2.5 rounded-l-xl bg-slate-100 text-xs font-bold text-center">
                                         <option value="لتر">لتر</option>
                                         <option value="طن">طن</option>
                                         <option value="كوب">كوب</option>
@@ -132,62 +197,74 @@
                         </div>
 
                         <div class="mb-6">
-                            <label class="block text-sm font-medium mb-1">عدد الشاحنات</label>
-                            <input type="number" id="trucksInput" placeholder="عدد الشاحنات" required min="1" class="w-full border p-2 rounded focus:ring focus:ring-blue-200">
+                            <label class="block text-xs font-bold text-slate-600 mb-1.5">عدد الشاحنات</label>
+                            <input type="number" id="trucksInput" placeholder="عدد الشاحنات" required min="1" class="w-full border border-slate-300 p-2.5 rounded-xl focus:ring-2 focus:ring-blue-500 bg-slate-50 text-sm">
                         </div>
 
-                        <button type="submit" id="submitBtn" class="w-full bg-blue-600 text-white font-bold py-3 rounded hover:bg-blue-700 transition">حفظ البيانات</button>
-                        <button type="button" id="cancelEditBtn" onclick="cancelEdit()" class="w-full mt-2 bg-gray-400 text-white font-bold py-2 rounded hover:bg-gray-500 hidden" style="display: none;">إلغاء التعديل</button>
+                        <button type="submit" id="submitBtn" class="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl hover:bg-blue-700 active:scale-98 transition shadow-md">حفظ البيانات</button>
+                        <button type="button" id="cancelEditBtn" onclick="cancelEdit()" class="w-full mt-2.5 bg-slate-400 text-white font-bold py-2.5 rounded-xl hover:bg-slate-500 hidden" style="display: none;">إلغاء التعديل</button>
                     </form>
                 </div>
             </div>
 
+            <!-- تبويب التقارير -->
             <div id="report-tab" class="hidden" style="display: none;">
-                <div class="bg-white p-4 rounded-lg shadow-md mb-4">
-                    <h2 class="text-lg font-semibold mb-3 border-b pb-2">فلترة التقرير</h2>
-                    <div class="flex gap-2 mb-3">
-                        <div class="w-1/3">
-                            <label class="block text-xs font-medium mb-1">نوع الوقود</label>
-                            <select id="typeFilter" class="w-full border p-2 rounded text-xs bg-gray-50"></select>
+                <div class="bg-white p-4 md:p-5 rounded-2xl shadow-md mb-4 border border-slate-100 no-print">
+                    <h2 class="text-base font-bold mb-3 border-b pb-2 text-slate-800">فلترة التقرير</h2>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-2.5 mb-3">
+                        <!-- فلتر اختيار أكثر من صنف (Multi-select) -->
+                        <div class="relative">
+                            <label class="block text-xs font-bold text-slate-600 mb-1">نوع الوقود (متعدد)</label>
+                            <button type="button" onclick="toggleMultiSelect(event)" id="multiSelectBtn" class="w-full border border-slate-300 p-2.5 rounded-xl text-xs bg-slate-50 text-right flex justify-between items-center font-semibold">
+                                <span id="multiSelectLabel" class="truncate">الكل</span>
+                                <span class="text-slate-400 text-[10px]">▼</span>
+                            </button>
+                            <div id="multiSelectDropdown" class="hidden absolute z-40 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-52 overflow-y-auto p-2 text-xs">
+                                <!-- يتم تعبئة الأصناف هنا برمجياً -->
+                            </div>
                         </div>
-                        <div class="w-1/3">
-                            <label class="block text-xs font-medium mb-1">من تاريخ</label>
-                            <input type="date" id="startDate" class="w-full border p-2 rounded text-xs">
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 mb-1">من تاريخ</label>
+                            <input type="date" id="startDate" class="w-full border border-slate-300 p-2 rounded-xl text-xs bg-slate-50">
                         </div>
-                        <div class="w-1/3">
-                            <label class="block text-xs font-medium mb-1">إلى تاريخ</label>
-                            <input type="date" id="endDate" class="w-full border p-2 rounded text-xs">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 mb-1">إلى تاريخ</label>
+                            <input type="date" id="endDate" class="w-full border border-slate-300 p-2 rounded-xl text-xs bg-slate-50">
                         </div>
                     </div>
-                    <button onclick="generateReport()" class="w-full bg-gray-800 text-white font-bold py-2 rounded mb-2 hover:bg-gray-900">تحديث التقرير (عرض الكل)</button>
+
+                    <button onclick="generateReport()" class="w-full bg-slate-800 text-white font-bold py-2.5 rounded-xl mb-3 hover:bg-slate-900 active:scale-98 transition text-sm shadow">تحديث التقرير</button>
                     
-                    <div class="grid grid-cols-2 gap-2 mt-4">
-                        <button onclick="exportExcel('printable-report')" class="bg-green-600 text-white text-sm font-bold py-2 rounded">تنزيل Excel</button>
-                        <button onclick="shareExcel('printable-report')" class="bg-green-500 text-white text-sm font-bold py-2 rounded">مشاركة Excel</button>
-                        <button onclick="exportPDF('printable-report')" class="bg-red-600 text-white text-sm font-bold py-2 rounded">تنزيل PDF</button>
-                        <button onclick="sharePDF('printable-report')" class="bg-red-500 text-white text-sm font-bold py-2 rounded">مشاركة PDF</button>
+                    <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100">
+                        <button onclick="exportExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs md:text-sm font-bold py-2.5 rounded-xl shadow-sm">تنزيل Excel</button>
+                        <button onclick="shareExcel()" class="bg-emerald-500 hover:bg-emerald-600 text-white text-xs md:text-sm font-bold py-2.5 rounded-xl shadow-sm">مشاركة Excel</button>
+                        <button onclick="exportPDF()" class="bg-red-600 hover:bg-red-700 text-white text-xs md:text-sm font-bold py-2.5 rounded-xl shadow-sm">تنزيل PDF</button>
+                        <button onclick="sharePDF()" class="bg-red-500 hover:bg-red-600 text-white text-xs md:text-sm font-bold py-2.5 rounded-xl shadow-sm">مشاركة PDF</button>
                     </div>
                 </div>
 
+                <!-- التقرير الرسمي المخصص للطباعة والـ PDF (ثابت التصميم ومضبوط المسافات) -->
                 <div id="printable-report" class="bg-white p-6 rounded-lg shadow-md mt-4 border border-gray-200">
-                    <div class="text-center border-b-2 border-blue-600 pb-4 mb-4">
-                        <h2 class="font-bold text-xl text-blue-900 mb-2">تقرير كمية المحروقات</h2>
+                    <div class="text-center border-b-2 border-blue-600 pb-4 mb-4 avoid-break">
+                        <h2 class="font-bold text-xl text-blue-900 mb-2" style="word-spacing: 2px;">تقرير كمية المحروقات</h2>
                         <p id="reportPeriodDisplay" class="text-sm text-gray-700 font-semibold"></p>
                     </div>
                     
                     <div class="mb-6">
-                        <h3 class="font-bold text-sm mb-2 text-gray-700">تفاصيل الحركات</h3>
+                        <h3 class="font-bold text-sm mb-2 text-gray-700 avoid-break">تفاصيل الحركات</h3>
                         <div class="overflow-x-auto">
                             <table class="w-full text-xs text-center border-collapse border border-gray-300">
                                 <thead>
-                                    <tr class="bg-blue-50 text-blue-900">
+                                    <tr class="bg-blue-50 text-blue-900 font-bold">
                                         <th class="border border-gray-300 p-2">رقم المعاملة</th>
                                         <th class="border border-gray-300 p-2">التاريخ</th>
                                         <th class="border border-gray-300 p-2">الجهة المستفيدة</th>
                                         <th class="border border-gray-300 p-2">الصنف</th>
                                         <th class="border border-gray-300 p-2">عدد الشاحنات</th>
                                         <th class="border border-gray-300 p-2">الكمية</th>
-                                        <th class="border border-gray-300 p-2 admin-only hidden" data-html2canvas-ignore="true">إجراء</th>
+                                        <th class="border border-gray-300 p-2 admin-only hidden no-print" data-html2canvas-ignore="true">إجراء</th>
                                     </tr>
                                 </thead>
                                 <tbody id="reportTableBody"></tbody>
@@ -195,12 +272,12 @@
                         </div>
                     </div>
                     
-                    <div class="mb-6">
+                    <div class="mb-6 avoid-break">
                         <h3 class="font-bold text-sm mb-2 text-blue-800">إجمالي الكمية وعدد الشاحنات حسب الصنف</h3>
                         <div class="overflow-x-auto">
                             <table class="w-full text-xs text-center border-collapse border border-gray-300">
                                 <thead>
-                                    <tr class="bg-gray-100 text-gray-800">
+                                    <tr class="bg-gray-100 text-gray-800 font-bold">
                                         <th class="border border-gray-300 p-2 w-1/3">الصنف</th>
                                         <th class="border border-gray-300 p-2 w-1/3">إجمالي الشاحنات</th>
                                         <th class="border border-gray-300 p-2 w-1/3">إجمالي الكمية</th>
@@ -211,18 +288,19 @@
                         </div>
                     </div>
 
-                    <div class="mt-8 border-t border-gray-300 pt-4 text-xs text-gray-600">
+                    <div class="mt-8 border-t border-gray-300 pt-4 text-xs text-gray-600 avoid-break">
                         <div class="flex justify-between items-center">
                             <span id="footerUser" class="font-bold"></span>
-                            <span id="footerTime" dir="ltr" class="font-bold"></span>
+                            <span id="footerTime" class="font-bold"></span>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div id="audit-tab" class="hidden" style="display: none;">
-                <div class="bg-white p-4 rounded-lg shadow-md mb-4">
-                    <h2 class="text-lg font-semibold mb-3 border-b pb-2 text-red-600">سجل المعاملات المحذوفة والمعدلة</h2>
+            <!-- تبويب سجل المحذوفات -->
+            <div id="audit-tab" class="hidden no-print" style="display: none;">
+                <div class="bg-white p-4 rounded-2xl shadow-md mb-4 border border-slate-100">
+                    <h2 class="text-base font-bold mb-3 border-b pb-2 text-red-600">سجل المعاملات المحذوفة والمعدلة</h2>
                     <div class="overflow-x-auto">
                         <table class="w-full text-xs text-center border-collapse border border-gray-300">
                             <thead>
@@ -239,20 +317,32 @@
                 </div>
             </div>
 
-            <div id="settings-tab" class="hidden" style="display: none;">
-                <div class="bg-white p-4 rounded-lg shadow-md mb-4 border-l-4 border-blue-600">
-                    <h2 class="text-lg font-semibold mb-3 border-b pb-2">إدارة المستخدمين (المدير فقط)</h2>
-                    <div class="grid grid-cols-2 gap-2 mb-3 text-sm">
-                        <input type="text" id="newUserId" placeholder="رقم الهوية (اسم الدخول)" class="border p-2 rounded">
-                        <input type="text" id="newUserName" placeholder="الاسم الكامل" class="border p-2 rounded">
-                        <input type="password" id="newUserPass" placeholder="كلمة المرور" class="border p-2 rounded">
-                        <select id="newUserRole" class="border p-2 rounded">
+            <!-- تبويب الإعدادات -->
+            <div id="settings-tab" class="hidden no-print" style="display: none;">
+                
+                <!-- استيراد ملف Excel في الإعدادات مع منع التكرار -->
+                <div class="bg-emerald-50 p-4 rounded-2xl shadow-sm mb-4 border border-emerald-200 flex items-center justify-between gap-2">
+                    <div>
+                        <h2 class="text-sm font-bold text-emerald-950 mb-0.5">استيراد بيانات من ملف Excel</h2>
+                        <p class="text-[11px] text-emerald-700">يدمج السجلات الجديدة فقط ويمنع تكرار أي معاملة موجودة مسبقاً</p>
+                    </div>
+                    <input type="file" id="excelFileImporter" accept=".xlsx, .xls" class="hidden" onchange="importExcelFile(event)">
+                    <button type="button" onclick="document.getElementById('excelFileImporter').click()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow shrink-0">رفع ملف Excel</button>
+                </div>
+
+                <div class="bg-white p-4 rounded-2xl shadow-md mb-4 border-l-4 border-blue-600">
+                    <h2 class="text-base font-bold mb-3 border-b pb-2">إدارة المستخدمين (المدير فقط)</h2>
+                    <div class="grid grid-cols-2 gap-2 mb-3 text-xs md:text-sm">
+                        <input type="text" id="newUserId" placeholder="رقم الهوية (اسم الدخول)" class="border p-2 rounded-lg">
+                        <input type="text" id="newUserName" placeholder="الاسم الكامل" class="border p-2 rounded-lg">
+                        <input type="password" id="newUserPass" placeholder="كلمة المرور" class="border p-2 rounded-lg">
+                        <select id="newUserRole" class="border p-2 rounded-lg">
                             <option value="viewer">مستعرض (تقارير فقط)</option>
                             <option value="entry">مدخل بيانات</option>
                             <option value="admin">مدير نظام</option>
                         </select>
                     </div>
-                    <button onclick="addUser()" class="w-full bg-blue-600 text-white font-bold py-2 rounded mb-3">إضافة مستخدم</button>
+                    <button onclick="addUser()" class="w-full bg-blue-600 text-white font-bold py-2 rounded-xl mb-3 text-sm">إضافة مستخدم</button>
                     
                     <div class="overflow-x-auto">
                         <table class="w-full text-xs text-center border-collapse border">
@@ -269,22 +359,22 @@
                     </div>
                 </div>
 
-                <div class="bg-white p-4 rounded-lg shadow-md mb-4">
-                    <h2 class="text-sm font-semibold mb-2">إدارة الجهات المستفيدة</h2>
+                <div class="bg-white p-4 rounded-2xl shadow-md mb-4">
+                    <h2 class="text-sm font-bold mb-2">إدارة الجهات المستفيدة</h2>
                     <div class="flex gap-2 mb-2">
-                        <input type="text" id="newBeneficiary" placeholder="اسم الجهة" class="w-full border p-2 rounded text-sm">
-                        <button onclick="addSetting('beneficiaries', 'newBeneficiary')" class="bg-gray-800 text-white px-3 rounded text-sm shrink-0">إضافة</button>
+                        <input type="text" id="newBeneficiary" placeholder="اسم الجهة" class="w-full border p-2 rounded-xl text-sm">
+                        <button onclick="addSetting('beneficiaries', 'newBeneficiary')" class="bg-gray-800 text-white px-4 rounded-xl text-sm shrink-0 font-bold">إضافة</button>
                     </div>
-                    <ul id="beneficiariesList" class="divide-y border rounded max-h-32 overflow-y-auto"></ul>
+                    <ul id="beneficiariesList" class="divide-y border rounded-xl max-h-40 overflow-y-auto"></ul>
                 </div>
 
-                <div class="bg-white p-4 rounded-lg shadow-md">
-                    <h2 class="text-sm font-semibold mb-2">إدارة أنواع الوقود</h2>
+                <div class="bg-white p-4 rounded-2xl shadow-md">
+                    <h2 class="text-sm font-bold mb-2">إدارة أنواع الوقود</h2>
                     <div class="flex gap-2 mb-2">
-                        <input type="text" id="newFuelType" placeholder="نوع الوقود" class="w-full border p-2 rounded text-sm">
-                        <button onclick="addSetting('fuelTypes', 'newFuelType')" class="bg-gray-800 text-white px-3 rounded text-sm shrink-0">إضافة</button>
+                        <input type="text" id="newFuelType" placeholder="نوع الوقود" class="w-full border p-2 rounded-xl text-sm">
+                        <button onclick="addSetting('fuelTypes', 'newFuelType')" class="bg-gray-800 text-white px-4 rounded-xl text-sm shrink-0 font-bold">إضافة</button>
                     </div>
-                    <ul id="fuelTypesList" class="divide-y border rounded max-h-32 overflow-y-auto"></ul>
+                    <ul id="fuelTypesList" class="divide-y border rounded-xl max-h-40 overflow-y-auto"></ul>
                 </div>
             </div>
 
@@ -332,71 +422,49 @@
             }
         }
 
-        async function syncLocalToCloud() {
-            let users = JSON.parse(localStorage.getItem('appUsers')) || [];
-            let fuelTypes = JSON.parse(localStorage.getItem('fuelTypes')) || [];
-            let beneficiaries = JSON.parse(localStorage.getItem('beneficiaries')) || [];
-
-            if(users.length === 0) {
-                users.push({ id: 'admin', name: 'مدير النظام الافتراضي', pass: 'admin', role: 'admin' });
-            }
-            if (!users.find(u => u.id === '802838904')) {
-                users.push({ id: '802838904', name: 'محمد حسن عبد الله', pass: '802838904', role: 'admin' });
-            }
-            if (fuelTypes.length === 0) {
-                fuelTypes = ["الغاز", "سولار تجاري", "سولار مؤسسات", "بنزين تجاري", "بنزين مؤسسات"];
-            }
-            if (beneficiaries.length === 0) {
-                beneficiaries = ["UNOPS"];
-            }
-
-            // تنظيف التكرار قبل المزامنة
-            users = Array.from(new Map(users.map(u => [u.id, u])).values());
-
+        // جلب آمن للبيانات من السحابة دون الكتابة الفوقية العشوائية
+        async function loadCloudToLocal() {
             const cloudUsers = await getCloudData('appUsers');
             const cloudFuelTypes = await getCloudData('fuelTypes');
             const cloudBeneficiaries = await getCloudData('beneficiaries');
+            const cloudFuelData = await getCloudData('fuelData');
 
-            if (!cloudUsers) await saveCloudData('appUsers', users);
-            if (!cloudFuelTypes) await saveCloudData('fuelTypes', fuelTypes);
-            if (!cloudBeneficiaries) await saveCloudData('beneficiaries', beneficiaries);
-        }
-
-        async function loadCloudToLocal() {
-            await syncLocalToCloud();
-            
-            let localFuelData = JSON.parse(localStorage.getItem('fuelData')) || [];
-            let cloudFuelData = await getCloudData('fuelData') || [];
-
-            if (cloudFuelData && !Array.isArray(cloudFuelData)) {
-                cloudFuelData = Object.values(cloudFuelData);
-            }
-
-            const mergedMap = new Map();
-            localFuelData.forEach(item => mergedMap.set(item.id, item));
-            if (Array.isArray(cloudFuelData)) {
-                cloudFuelData.forEach(item => mergedMap.set(item.id, item));
-            }
-
-            const finalFuelData = Array.from(mergedMap.values());
-
-            localStorage.setItem('fuelData', JSON.stringify(finalFuelData));
-            if (finalFuelData.length > 0) {
-                await saveCloudData('fuelData', finalFuelData);
-            }
-
-            ['appUsers', 'fuelTypes', 'beneficiaries'].forEach(async (key) => {
-                let localVal = JSON.parse(localStorage.getItem(key)) || [];
-                let cloudVal = await getCloudData(key) || [];
-                if (cloudVal && !Array.isArray(cloudVal)) cloudVal = Object.values(cloudVal);
-                
-                let merged = [...new Set([...localVal, ...(Array.isArray(cloudVal) ? cloudVal : [])])];
-                if(key === 'appUsers') {
-                    merged = Array.from(new Map(merged.map(u => [u.id, u])).values());
+            if (cloudUsers && cloudUsers.length > 0) {
+                const uniqueUsers = Array.from(new Map(cloudUsers.filter(Boolean).map(u => [u.id, u])).values());
+                localStorage.setItem('appUsers', JSON.stringify(uniqueUsers));
+            } else {
+                let localUsers = JSON.parse(localStorage.getItem('appUsers')) || [];
+                if (localUsers.length === 0) {
+                    localUsers = [
+                        { id: 'admin', name: 'مدير النظام الافتراضي', pass: 'admin', role: 'admin' },
+                        { id: '802838904', name: 'محمد حسن عبد الله', pass: '802838904', role: 'admin' }
+                    ];
                 }
-                localStorage.setItem(key, JSON.stringify(merged));
-                await saveCloudData(key, merged);
-            });
+                localStorage.setItem('appUsers', JSON.stringify(localUsers));
+                await saveCloudData('appUsers', localUsers);
+            }
+
+            if (cloudFuelTypes && cloudFuelTypes.length > 0) {
+                const uniqueTypes = [...new Set(cloudFuelTypes.filter(Boolean))];
+                localStorage.setItem('fuelTypes', JSON.stringify(uniqueTypes));
+            } else {
+                let localTypes = JSON.parse(localStorage.getItem('fuelTypes')) || ["الغاز", "سولار تجاري", "سولار مؤسسات", "بنزين تجاري", "بنزين مؤسسات"];
+                localStorage.setItem('fuelTypes', JSON.stringify(localTypes));
+                await saveCloudData('fuelTypes', localTypes);
+            }
+
+            if (cloudBeneficiaries && cloudBeneficiaries.length > 0) {
+                const uniqueBenfs = [...new Set(cloudBeneficiaries.filter(Boolean))];
+                localStorage.setItem('beneficiaries', JSON.stringify(uniqueBenfs));
+            } else {
+                let localBenfs = JSON.parse(localStorage.getItem('beneficiaries')) || ["UNOPS"];
+                localStorage.setItem('beneficiaries', JSON.stringify(localBenfs));
+                await saveCloudData('beneficiaries', localBenfs);
+            }
+
+            if (cloudFuelData) {
+                localStorage.setItem('fuelData', JSON.stringify(cloudFuelData.filter(Boolean)));
+            }
         }
 
         window.initCloudSystem = async function() {
@@ -422,8 +490,8 @@
                     document.getElementById('userInfo').style.display = 'flex';
                     document.getElementById('userNameDisplay').innerText = `مرحباً: ${currentUser.name}`;
                     
-                    setupUIBasedOnRole();
                     updateSelectOptions();
+                    setupUIBasedOnRole();
                 } else {
                     logout();
                 }
@@ -452,8 +520,8 @@
                 document.getElementById('userInfo').style.display = 'flex';
                 document.getElementById('userNameDisplay').innerText = `مرحباً: ${user.name}`;
                 
-                setupUIBasedOnRole();
                 updateSelectOptions();
+                setupUIBasedOnRole();
             } else {
                 alert("بيانات الدخول غير صحيحة!");
             }
@@ -525,21 +593,19 @@
             }
         }
 
-        // --- دالة عرض جدول المستخدمين مع منع التكرار نهائياً ---
         function renderUsersTable() {
             let users = JSON.parse(localStorage.getItem('appUsers')) || [];
-            users = Array.from(new Map(users.map(u => [u.id, u])).values()); // منع تكرار المستخدمين
+            users = Array.from(new Map(users.map(u => [u.id, u])).values());
             
             const tbody = document.getElementById('usersListTable');
             if (tbody) {
-                tbody.innerHTML = ""; // تفريغ الجدول تماماً قبل ملئه
                 tbody.innerHTML = users.map(u => `
                     <tr>
-                        <td class="border p-1">${u.id}</td>
-                        <td class="border p-1">${u.name}</td>
-                        <td class="border p-1">${u.role === 'admin' ? 'مدير' : (u.role === 'entry' ? 'مدخل' : 'مستعرض')}</td>
-                        <td class="border p-1">
-                            ${u.id !== 'admin' && u.id !== currentUser.id ? `<button onclick="deleteUser('${u.id}')" class="text-red-600 font-bold">X</button>` : '-'}
+                        <td class="border p-1.5">${u.id}</td>
+                        <td class="border p-1.5 font-semibold">${u.name}</td>
+                        <td class="border p-1.5">${u.role === 'admin' ? 'مدير' : (u.role === 'entry' ? 'مدخل' : 'مستعرض')}</td>
+                        <td class="border p-1.5">
+                            ${u.id !== 'admin' && u.id !== currentUser.id ? `<button onclick="deleteUser('${u.id}')" class="text-red-600 font-bold px-2">X</button>` : '-'}
                         </td>
                     </tr>
                 `).join('');
@@ -595,12 +661,12 @@
                 activeTab.style.display = 'block';
             }
             
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.classList.remove('active', 'border-b-4', 'border-blue-600', 'text-blue-600');
+            document.querySelectorAll('.nav-pill').forEach(btn => {
+                btn.classList.remove('active');
             });
             const activeBtn = document.getElementById('btn-' + tabId);
             if(activeBtn) {
-                activeBtn.classList.add('active', 'border-b-4', 'border-blue-600', 'text-blue-600');
+                activeBtn.classList.add('active');
             }
 
             if(tabId === 'input-tab' && !document.getElementById('editingTxnId').value) {
@@ -619,6 +685,55 @@
             }
         }
 
+        // إدارة القائمة المنسدلة متعددة الاختيارات للأصناف
+        function toggleMultiSelect(e) {
+            e.stopPropagation();
+            const dropdown = document.getElementById('multiSelectDropdown');
+            dropdown.classList.toggle('hidden');
+        }
+
+        document.addEventListener('click', function(e) {
+            const dropdown = document.getElementById('multiSelectDropdown');
+            const btn = document.getElementById('multiSelectBtn');
+            if (dropdown && !dropdown.contains(e.target) && !btn.contains(e.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
+
+        function onAllTypesToggle(checkbox) {
+            const itemCheckboxes = document.querySelectorAll('.fuel-type-cb');
+            itemCheckboxes.forEach(cb => cb.checked = checkbox.checked);
+            updateMultiSelectLabel();
+        }
+
+        function onTypeItemToggle() {
+            const allCb = document.getElementById('cb-all-types');
+            const itemCheckboxes = Array.from(document.querySelectorAll('.fuel-type-cb'));
+            const allChecked = itemCheckboxes.every(cb => cb.checked);
+            if (allCb) allCb.checked = allChecked;
+            updateMultiSelectLabel();
+        }
+
+        function updateMultiSelectLabel() {
+            const itemCheckboxes = Array.from(document.querySelectorAll('.fuel-type-cb'));
+            const selected = itemCheckboxes.filter(cb => cb.checked).map(cb => cb.value);
+            const label = document.getElementById('multiSelectLabel');
+            
+            if (selected.length === 0 || selected.length === itemCheckboxes.length) {
+                label.innerText = 'الكل';
+            } else {
+                label.innerText = selected.join(' ، ');
+            }
+        }
+
+        function getSelectedFuelTypes() {
+            const allCb = document.getElementById('cb-all-types');
+            const itemCheckboxes = Array.from(document.querySelectorAll('.fuel-type-cb'));
+            if (!allCb || allCb.checked) return null; // null يعني الكل
+            const selected = itemCheckboxes.filter(cb => cb.checked).map(cb => cb.value);
+            return selected.length === 0 ? null : selected;
+        }
+
         function updateSelectOptions() {
             let types = JSON.parse(localStorage.getItem('fuelTypes')) || [];
             let benfs = JSON.parse(localStorage.getItem('beneficiaries')) || [];
@@ -628,7 +743,23 @@
 
             document.getElementById('typeInput').innerHTML = types.map(t => `<option value="${t}">${t}</option>`).join('');
             document.getElementById('beneficiaryInput').innerHTML = benfs.map(b => `<option value="${b}">${b}</option>`).join('');
-            document.getElementById('typeFilter').innerHTML = `<option value="الكل">الكل</option>` + types.map(t => `<option value="${t}">${t}</option>`).join('');
+            
+            // بناء قائمة الاختيار المتعدد للأصناف
+            const dropdown = document.getElementById('multiSelectDropdown');
+            if (dropdown) {
+                dropdown.innerHTML = `
+                    <label class="flex items-center gap-2 p-2 hover:bg-blue-50 rounded-lg cursor-pointer font-bold border-b border-slate-100 mb-1">
+                        <input type="checkbox" id="cb-all-types" checked onchange="onAllTypesToggle(this)" class="w-4 h-4 accent-blue-600 rounded">
+                        <span>الكل</span>
+                    </label>
+                ` + types.map(t => `
+                    <label class="flex items-center gap-2 p-2 hover:bg-slate-50 rounded-lg cursor-pointer">
+                        <input type="checkbox" value="${t}" checked onchange="onTypeItemToggle()" class="fuel-type-cb w-4 h-4 accent-blue-600 rounded">
+                        <span>${t}</span>
+                    </label>
+                `).join('');
+                updateMultiSelectLabel();
+            }
             
             updateUnitBasedOnType();
         }
@@ -640,12 +771,14 @@
 
         function renderSettingsList(key, listId) {
             let items = JSON.parse(localStorage.getItem(key)) || [];
-            items = [...new Set(items)]; // إزالة أي تكرار
+            items = [...new Set(items)];
             const listEl = document.getElementById(listId);
             if (listEl) {
                 listEl.innerHTML = items.map((item, i) => `
-                    <li class="flex justify-between p-2 text-sm"><span>${item}</span>
-                    <button onclick="deleteSetting('${key}', ${i})" class="text-red-500 font-bold">X</button></li>
+                    <li class="flex justify-between items-center p-2.5 text-sm hover:bg-slate-50">
+                        <span class="font-medium">${item}</span>
+                        <button onclick="deleteSetting('${key}', ${i})" class="text-red-500 font-bold px-2">X</button>
+                    </li>
                 `).join('');
             }
         }
@@ -767,6 +900,83 @@
             document.getElementById('dateInput').value = getTodayString();
         }
 
+        // استيراد آمن لملف الإكسل في الإعدادات مع منع تكرار أي سجل موجود
+        async function importExcelFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    await loadCloudToLocal();
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const jsonRows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                    let existingData = JSON.parse(localStorage.getItem('fuelData')) || [];
+                    let addedCount = 0;
+
+                    for (let i = 0; i < jsonRows.length; i++) {
+                        let row = jsonRows[i];
+                        if (!row || row.length < 6) continue;
+                        
+                        let serial = row[0];
+                        let date = String(row[1] || '').trim();
+                        let beneficiary = String(row[2] || '').trim();
+                        let type = String(row[3] || '').trim();
+                        let trucksStr = row[4];
+                        let qtyStr = row[5];
+
+                        if (!date || !type || isNaN(Number(serial))) continue;
+
+                        let trucks = parseInt(String(trucksStr).replace(/[^0-9]/g, '')) || 1;
+                        let cleanQty = parseFloat(String(qtyStr).replace(/,/g, '').replace(/[^0-9.]/g, '')) || 0;
+                        let unit = String(qtyStr).includes('طن') || type.includes('غاز') ? 'طن' : 'لتر';
+
+                        let isDuplicate = existingData.some(item => 
+                            !item.isDeleted &&
+                            String(item.date).trim() === date && 
+                            String(item.beneficiary).trim() === beneficiary && 
+                            String(item.type).trim() === type && 
+                            Math.abs(Number(item.quantity) - cleanQty) < 0.01
+                        );
+
+                        if (!isDuplicate && cleanQty > 0) {
+                            const newRecord = {
+                                id: (Date.now() + Math.random()).toString(),
+                                serialNo: existingData.filter(r => !r.isDeleted).length + 1,
+                                date: date,
+                                beneficiary: beneficiary,
+                                type: type,
+                                trucks: trucks,
+                                quantity: cleanQty,
+                                unit: unit,
+                                addedBy: currentUser ? currentUser.name : 'استيراد Excel',
+                                isDeleted: false,
+                                status: 'active'
+                            };
+                            existingData.push(newRecord);
+                            addedCount++;
+                        }
+                    }
+
+                    if (addedCount > 0) {
+                        localStorage.setItem('fuelData', JSON.stringify(existingData));
+                        await saveCloudData('fuelData', existingData);
+                    }
+
+                    event.target.value = '';
+                    alert(`تم فحص الملف بنجاح! تمت إضافة (${addedCount}) سجل جديد وتجاهل السجلات المكررة.`);
+                } catch (err) {
+                    console.error(err);
+                    alert("حدث خطأ أثناء قراءة ملف الـ Excel.");
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
         function initiateEdit(txnId) {
             let data = JSON.parse(localStorage.getItem('fuelData')) || [];
             const record = data.find(r => r.id === txnId && !r.isDeleted);
@@ -781,7 +991,7 @@
             document.getElementById('unitInput').value = record.unit;
             
             document.getElementById('formTitle').innerText = "تعديل المعاملة رقم: " + (record.serialNo || '-');
-            document.getElementById('formTitle').classList.replace('text-gray-800', 'text-red-600');
+            document.getElementById('formTitle').classList.replace('text-slate-800', 'text-red-600');
             document.getElementById('submitBtn').innerText = "تحديث واعتماد التعديل";
             document.getElementById('submitBtn').classList.replace('bg-blue-600', 'bg-red-600');
             
@@ -798,7 +1008,7 @@
             document.getElementById('trucksInput').value = "1";
             
             document.getElementById('formTitle').innerText = "تسجيل بيانات جديدة";
-            document.getElementById('formTitle').classList.replace('text-red-600', 'text-gray-800');
+            document.getElementById('formTitle').classList.replace('text-red-600', 'text-slate-800');
             document.getElementById('submitBtn').innerText = "حفظ البيانات";
             document.getElementById('submitBtn').classList.replace('bg-red-600', 'bg-blue-600');
             
@@ -824,12 +1034,27 @@
             }
         }
 
+        function getFilteredReportData() {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            const selectedTypes = getSelectedFuelTypes();
+            let data = JSON.parse(localStorage.getItem('fuelData')) || [];
+
+            const activeData = data.filter(item => !item.isDeleted);
+
+            return activeData.filter(item => {
+                let passDate = true, passType = true;
+                if (startDate) passDate = passDate && (item.date >= startDate);
+                if (endDate) passDate = passDate && (item.date <= endDate);
+                if (selectedTypes !== null) passType = selectedTypes.includes(item.type);
+                return passDate && passType;
+            });
+        }
+
         async function generateReport() {
             await loadCloudToLocal();
             const startDate = document.getElementById('startDate').value;
             const endDate = document.getElementById('endDate').value;
-            const typeFilter = document.getElementById('typeFilter').value;
-            let data = JSON.parse(localStorage.getItem('fuelData')) || [];
 
             let periodText = "الفترة: جميع السجلات";
             if (startDate && endDate) {
@@ -841,15 +1066,7 @@
             }
             document.getElementById('reportPeriodDisplay').innerText = periodText;
 
-            const activeData = data.filter(item => !item.isDeleted);
-
-            const filteredData = activeData.filter(item => {
-                let passDate = true, passType = true;
-                if (startDate) passDate = passDate && (item.date >= startDate);
-                if (endDate) passDate = passDate && (item.date <= endDate);
-                if (typeFilter !== 'الكل') passType = (item.type === typeFilter);
-                return passDate && passType;
-            });
+            const filteredData = getFilteredReportData();
 
             const reportBody = document.getElementById('reportTableBody');
             reportBody.innerHTML = '';
@@ -857,21 +1074,22 @@
                 let actionButtons = '';
                 if(currentUser && currentUser.role === 'admin') {
                     actionButtons = `
-                        <td class="border border-gray-300 p-2 admin-only" data-html2canvas-ignore="true">
+                        <td class="border border-gray-300 p-2 admin-only no-print" data-html2canvas-ignore="true">
                             <button onclick="initiateEdit('${item.id}')" class="text-blue-600 mx-1">✏️</button>
                             <button onclick="deleteRecord('${item.id}')" class="text-red-600 mx-1">❌</button>
                         </td>
                     `;
                 }
 
+                // استخدام مسافات واضحة لمنع التصاق الرقم بكلمة شاحنة أو الوحدة في الـ PDF
                 reportBody.innerHTML += `
                     <tr>
                         <td class="border border-gray-300 p-2 font-bold text-blue-800">${item.serialNo || '-'}</td>
                         <td class="border border-gray-300 p-2">${item.date}</td>
                         <td class="border border-gray-300 p-2">${item.beneficiary}</td>
                         <td class="border border-gray-300 p-2">${item.type}</td>
-                        <td class="border border-gray-300 p-2 font-semibold">${formatNumber(item.trucks || 1)} شاحنة</td>
-                        <td class="border border-gray-300 p-2" dir="ltr"><span class="font-bold">${formatNumber(item.quantity)}</span> <span class="text-xs text-gray-500">${item.unit||''}</span></td>
+                        <td class="border border-gray-300 p-2 font-semibold">${formatNumber(item.trucks || 1)}&nbsp;شاحنة</td>
+                        <td class="border border-gray-300 p-2"><span class="font-bold">${formatNumber(item.quantity)}</span>&nbsp;<span class="text-xs text-gray-500">${item.unit||''}</span></td>
                         ${actionButtons}
                     </tr>
                 `;
@@ -882,7 +1100,7 @@
                 if (totals[item.type] === undefined) {
                     totals[item.type] = { qty: 0, trucks: 0 };
                 }
-                totals[item.type].qty += item.quantity;
+                totals[item.type].qty += Number(item.quantity) || 0;
                 totals[item.type].trucks += (parseInt(item.trucks) || 1);
             });
 
@@ -894,8 +1112,8 @@
                 summaryBody.innerHTML += `
                     <tr>
                         <td class="border border-gray-300 p-2 font-bold">${type}</td>
-                        <td class="border border-gray-300 p-2 font-bold text-gray-700">${formatNumber(dataObj.trucks)} شاحنة</td>
-                        <td class="border border-gray-300 p-2 text-blue-700 font-bold" dir="ltr">${formatNumber(dataObj.qty)} <span class="text-gray-500 text-sm">${displayUnit}</span></td>
+                        <td class="border border-gray-300 p-2 font-bold text-gray-700">${formatNumber(dataObj.trucks)}&nbsp;شاحنة</td>
+                        <td class="border border-gray-300 p-2 text-blue-700 font-bold">${formatNumber(dataObj.qty)}&nbsp;<span class="text-gray-500 text-sm">${displayUnit}</span></td>
                     </tr>
                 `;
             }
@@ -937,7 +1155,7 @@
                         <td class="border p-2"><span class="px-2 py-1 rounded text-xs font-bold ${badgeClass}">${actionText}</span></td>
                         <td class="border p-2 font-bold text-blue-900">${item.serialNo || '-'}</td>
                         <td class="border p-2 text-right text-xs">${detailsHtml}</td>
-                        <td class="border p-2 text-xs text-blue-800 font-semibold" dir="ltr">
+                        <td class="border p-2 text-xs text-blue-800 font-semibold">
                             ${item.actionBy} <br> ${item.actionTime}
                         </td>
                     </tr>
@@ -971,123 +1189,171 @@
             return "تقرير_كميات_" + periodStr;
         }
 
-        function exportExcel(tableId) {
+        // بناء ملف Excel مسطر بالكامل ومطابق لشكل الـ PDF مع توسيع تلقائي للأعمدة
+        function buildStyledExcelWorkbook() {
             updateExportFooter();
             const periodText = document.getElementById('reportPeriodDisplay').innerText;
             const userName = currentUser ? currentUser.name : 'غير معروف';
             const nowTime = new Date().toLocaleString('ar-EG');
-            const fileName = getReportFileName();
+            const activeData = getFilteredReportData();
+
+            const borderStyle = {
+                top: { style: "thin", color: { rgb: "94A3B8" } },
+                bottom: { style: "thin", color: { rgb: "94A3B8" } },
+                left: { style: "thin", color: { rgb: "94A3B8" } },
+                right: { style: "thin", color: { rgb: "94A3B8" } }
+            };
+
+            const titleStyle = {
+                font: { name: "Arial", sz: 15, bold: true, color: { rgb: "1E3A8A" } },
+                alignment: { horizontal: "center", vertical: "center" }
+            };
+
+            const subTitleStyle = {
+                font: { name: "Arial", sz: 11, bold: true, color: { rgb: "374151" } },
+                alignment: { horizontal: "center", vertical: "center" }
+            };
+
+            const sectionHeaderStyle = {
+                font: { name: "Arial", sz: 11, bold: true, color: { rgb: "1E40AF" } },
+                alignment: { horizontal: "right", vertical: "center" }
+            };
+
+            const tableHeaderStyle = {
+                font: { name: "Arial", sz: 11, bold: true, color: { rgb: "1E3A8A" } },
+                fill: { fgColor: { rgb: "EFF6FF" } },
+                border: borderStyle,
+                alignment: { horizontal: "center", vertical: "center" }
+            };
+
+            const cellStyle = {
+                font: { name: "Arial", sz: 10 },
+                border: borderStyle,
+                alignment: { horizontal: "center", vertical: "center" }
+            };
+
+            const boldCellStyle = {
+                font: { name: "Arial", sz: 10, bold: true, color: { rgb: "1E3A8A" } },
+                border: borderStyle,
+                alignment: { horizontal: "center", vertical: "center" }
+            };
 
             let wsData = [
-                ["تقرير كمية المحروقات"],
-                [periodText],
-                [""],
-                ["تفاصيل الحركات"],
+                ["تقرير كمية المحروقات", "", "", "", "", ""],
+                [periodText, "", "", "", "", ""],
+                ["", "", "", "", "", ""],
+                ["تفاصيل الحركات", "", "", "", "", ""],
                 ["رقم المعاملة", "التاريخ", "الجهة المستفيدة", "الصنف", "عدد الشاحنات", "الكمية"]
             ];
 
-            let activeData = JSON.parse(localStorage.getItem('fuelData')) || [];
-            const startDate = document.getElementById('startDate').value;
-            const endDate = document.getElementById('endDate').value;
-            const typeFilter = document.getElementById('typeFilter').value;
-
-            activeData = activeData.filter(item => !item.isDeleted).filter(item => {
-                let passDate = true, passType = true;
-                if (startDate) passDate = passDate && (item.date >= startDate);
-                if (endDate) passDate = passDate && (item.date <= endDate);
-                if (typeFilter !== 'الكل') passType = (item.type === typeFilter);
-                return passDate && passType;
-            });
-
             activeData.forEach(item => {
-                wsData.push([item.serialNo || '', item.date, item.beneficiary, item.type, formatNumber(item.trucks || 1) + " شاحنة", `${formatNumber(item.quantity)} ${item.unit || ''}`]);
+                wsData.push([
+                    item.serialNo || '-',
+                    item.date,
+                    item.beneficiary,
+                    item.type,
+                    `${formatNumber(item.trucks || 1)} شاحنة`,
+                    `${formatNumber(item.quantity)} ${item.unit || ''}`
+                ]);
             });
 
-            wsData.push([""]);
-            wsData.push(["إجمالي الكمية وعدد الشاحنات حسب الصنف"]);
-            wsData.push(["الصنف", "إجمالي الشاحنات", "إجمالي الكمية"]);
+            wsData.push(["", "", "", "", "", ""]);
+            const summaryTitleRowIndex = wsData.length;
+            wsData.push(["إجمالي الكمية وعدد الشاحنات حسب الصنف", "", "", "", "", ""]);
+            const summaryHeaderRowIndex = wsData.length;
+            wsData.push(["الصنف", "إجمالي الشاحنات", "إجمالي الكمية", "", "", ""]);
 
             const totals = {};
             activeData.forEach(item => {
                 if (totals[item.type] === undefined) totals[item.type] = { qty: 0, trucks: 0 };
-                totals[item.type].qty += item.quantity;
+                totals[item.type].qty += Number(item.quantity) || 0;
                 totals[item.type].trucks += (parseInt(item.trucks) || 1);
             });
 
+            const summaryStartRow = wsData.length;
             for (const [type, dataObj] of Object.entries(totals)) {
                 let displayUnit = (type.includes("غاز") || type.includes("الغاز")) ? "طن" : "لتر";
-                wsData.push([type, `${formatNumber(dataObj.trucks)} شاحنة`, `${formatNumber(dataObj.qty)} ${displayUnit}`]);
+                wsData.push([
+                    type,
+                    `${formatNumber(dataObj.trucks)} شاحنة`,
+                    `${formatNumber(dataObj.qty)} ${displayUnit}`,
+                    "", "", ""
+                ]);
             }
+            const summaryEndRow = wsData.length - 1;
 
-            wsData.push([""]);
-            wsData.push([`طُبع بواسطة: ${userName}`, `تاريخ ووقت الاستخراج: ${nowTime}`]);
+            wsData.push(["", "", "", "", "", ""]);
+            const footerRowIndex = wsData.length;
+            wsData.push([`طُبع بواسطة: ${userName}`, "", "", `تاريخ ووقت الاستخراج: ${nowTime}`, "", ""]);
 
             const wb = XLSX.utils.book_new();
             const ws = XLSX.utils.aoa_to_sheet(wsData);
-            ws['!rtl'] = true;
+
+            // ضبط اتجاه الورقة من اليمين إلى اليسار
+            ws['!views'] = [{ rightToLeft: true }];
+
+            // دمج خلايا العناوين الرئيسية والتذييل
+            ws['!merges'] = [
+                { s: { r: 0, c: 0 }, e: { r: 0, c: 5 } },
+                { s: { r: 1, c: 0 }, e: { r: 1, c: 5 } },
+                { s: { r: 3, c: 0 }, e: { r: 3, c: 5 } },
+                { s: { r: summaryTitleRowIndex, c: 0 }, e: { r: summaryTitleRowIndex, c: 2 } },
+                { s: { r: footerRowIndex, c: 0 }, e: { r: footerRowIndex, c: 2 } },
+                { s: { r: footerRowIndex, c: 3 }, e: { r: footerRowIndex, c: 5 } }
+            ];
+
+            // تطبيق التنسيقات والحدود على كل خلية
+            const range = XLSX.utils.decode_range(ws['!ref']);
+            for (let R = range.s.r; R <= range.e.r; ++R) {
+                for (let C = range.s.c; C <= range.e.c; ++C) {
+                    const cellRef = XLSX.utils.encode_cell({ r: R, c: C });
+                    if (!ws[cellRef]) continue;
+
+                    if (R === 0) ws[cellRef].s = titleStyle;
+                    else if (R === 1) ws[cellRef].s = subTitleStyle;
+                    else if (R === 3 || R === summaryTitleRowIndex) ws[cellRef].s = sectionHeaderStyle;
+                    else if (R === 4) ws[cellRef].s = tableHeaderStyle;
+                    else if (R > 4 && R < 4 + activeData.length + 1) {
+                        ws[cellRef].s = (C === 0 || C === 5) ? boldCellStyle : cellStyle;
+                    } else if (R === summaryHeaderRowIndex && C <= 2) {
+                        ws[cellRef].s = tableHeaderStyle;
+                    } else if (R >= summaryStartRow && R <= summaryEndRow && C <= 2) {
+                        ws[cellRef].s = (C === 0 || C === 2) ? boldCellStyle : cellStyle;
+                    } else if (R === footerRowIndex) {
+                        ws[cellRef].s = { font: { name: "Arial", sz: 9, bold: true, color: { rgb: "4B5563" } }, alignment: { horizontal: "right" } };
+                    }
+                }
+            }
+
+            // حساب وتوسيع عرض الأعمدة تلقائياً حسب أطول نص
+            const colWidths = [16, 16, 26, 20, 18, 22];
+            wsData.forEach((row, rIdx) => {
+                if (rIdx <= 3 || rIdx === summaryTitleRowIndex || rIdx === footerRowIndex) return;
+                row.forEach((val, cIdx) => {
+                    const strLen = String(val || '').length;
+                    if (strLen + 6 > colWidths[cIdx]) {
+                        colWidths[cIdx] = strLen + 6;
+                    }
+                });
+            });
+            ws['!cols'] = colWidths.map(w => ({ wch: w }));
+
             XLSX.utils.book_append_sheet(wb, ws, "التقرير");
+            return wb;
+        }
+
+        function exportExcel() {
+            const wb = buildStyledExcelWorkbook();
+            const fileName = getReportFileName();
             XLSX.writeFile(wb, fileName + ".xlsx");
         }
 
-        async function shareExcel(tableId) {
-            updateExportFooter();
-            const periodText = document.getElementById('reportPeriodDisplay').innerText;
-            const userName = currentUser ? currentUser.name : 'غير معروف';
-            const nowTime = new Date().toLocaleString('ar-EG');
+        async function shareExcel() {
+            const wb = buildStyledExcelWorkbook();
             const fileName = getReportFileName();
-
-            let wsData = [
-                ["تقرير كمية المحروقات"],
-                [periodText],
-                [""],
-                ["تفاصيل الحركات"],
-                ["رقم المعاملة", "التاريخ", "الجهة المستفيدة", "الصنف", "عدد الشاحنات", "الكمية"]
-            ];
-
-            let activeData = JSON.parse(localStorage.getItem('fuelData')) || [];
-            const startDate = document.getElementById('startDate').value;
-            const endDate = document.getElementById('endDate').value;
-            const typeFilter = document.getElementById('typeFilter').value;
-
-            activeData = activeData.filter(item => !item.isDeleted).filter(item => {
-                let passDate = true, passType = true;
-                if (startDate) passDate = passDate && (item.date >= startDate);
-                if (endDate) passDate = passDate && (item.date <= endDate);
-                if (typeFilter !== 'الكل') passType = (item.type === typeFilter);
-                return passDate && passType;
-            });
-
-            activeData.forEach(item => {
-                wsData.push([item.serialNo || '', item.date, item.beneficiary, item.type, formatNumber(item.trucks || 1) + " شاحنة", `${formatNumber(item.quantity)} ${item.unit || ''}`]);
-            });
-
-            wsData.push([""]);
-            wsData.push(["إجمالي الكمية وعدد الشاحنات حسب الصنف"]);
-            wsData.push(["الصنف", "إجمالي الشاحنات", "إجمالي الكمية"]);
-
-            const totals = {};
-            activeData.forEach(item => {
-                if (totals[item.type] === undefined) totals[item.type] = { qty: 0, trucks: 0 };
-                totals[item.type].qty += item.quantity;
-                totals[item.type].trucks += (parseInt(item.trucks) || 1);
-            });
-
-            for (const [type, dataObj] of Object.entries(totals)) {
-                let displayUnit = (type.includes("غاز") || type.includes("الغاز")) ? "طن" : "لتر";
-                wsData.push([type, `${formatNumber(dataObj.trucks)} شاحنة`, `${formatNumber(dataObj.qty)} ${displayUnit}`]);
-            }
-
-            wsData.push([""]);
-            wsData.push([`طُبع بواسطة: ${userName}`, `تاريخ ووقت الاستخراج: ${nowTime}`]);
-
-            const wb = XLSX.utils.book_new();
-            const ws = XLSX.utils.aoa_to_sheet(wsData);
-            ws['!rtl'] = true;
-            XLSX.utils.book_append_sheet(wb, ws, "التقرير");
-
-            let wbout = XLSX.write(wb, {bookType:'xlsx', type:'array'});
-            let blob = new Blob([wbout], {type: "application/octet-stream"});
-            let file = new File([blob], fileName + ".xlsx", {type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+            let wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+            let blob = new Blob([wbout], { type: "application/octet-stream" });
+            let file = new File([blob], fileName + ".xlsx", { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
             
             if (navigator.canShare && navigator.canShare({ files: [file] })) {
                 try { 
@@ -1100,29 +1366,36 @@
             }
         }
 
-        function exportPDF(tableId) {
-            updateExportFooter();
-            const element = document.getElementById(tableId);
-            const fileName = getReportFileName();
-            const opt = {
+        // إعدادات PDF محسنة تمنع قص الصفوف وتمنع التصاق الكلمات العربية
+        function getPdfOptions(fileName) {
+            return {
                 margin: [0.4, 0.4, 0.6, 0.4],
                 filename: fileName + '.pdf',
                 image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+                // إيقاف letterRendering لأنه يدمج المسافات في الخطوط العربية
+                html2canvas: { scale: 2, useCORS: true, letterRendering: false, scrollY: 0 },
                 jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' },
-                pagebreak: { mode: ['css', 'legacy'] },
-                callback: function (pdf) {
-                    const totalPages = pdf.internal.getNumberOfPages();
-                    for (let i = 1; i <= totalPages; i++) {
-                        pdf.setPage(i);
-                        pdf.setFont("helvetica", "normal");
-                        pdf.setFontSize(10);
-                        pdf.setTextColor(100, 100, 100);
-                        pdf.text(`Page ${i} of ${totalPages}`, pdf.internal.pageSize.getWidth() - 1.0, pdf.internal.pageSize.getHeight() - 0.3, { align: 'right' });
-                    }
-                }
+                // تفعيل avoid-all لمنع قص أي سطر (tr) بين صفحتين نهائياً
+                pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
             };
-            html2pdf().set(opt).from(element).outputPdf('blob').then(function(pdfBlob) {
+        }
+
+        function exportPDF() {
+            updateExportFooter();
+            const element = document.getElementById('printable-report');
+            const fileName = getReportFileName();
+            const opt = getPdfOptions(fileName);
+
+            html2pdf().set(opt).from(element).toPdf().get('pdf').then(function(pdf) {
+                const totalPages = pdf.internal.getNumberOfPages();
+                for (let i = 1; i <= totalPages; i++) {
+                    pdf.setPage(i);
+                    pdf.setFont("helvetica", "normal");
+                    pdf.setFontSize(9);
+                    pdf.setTextColor(100, 100, 100);
+                    pdf.text(`Page ${i} of ${totalPages}`, pdf.internal.pageSize.getWidth() - 0.5, pdf.internal.pageSize.getHeight() - 0.25, { align: 'right' });
+                }
+            }).outputPdf('blob').then(function(pdfBlob) {
                 const blobUrl = URL.createObjectURL(pdfBlob);
                 const a = document.createElement('a');
                 a.href = blobUrl;
@@ -1134,36 +1407,29 @@
             });
         }
 
-        function sharePDF(tableId) {
+        function sharePDF() {
             updateExportFooter();
-            const element = document.getElementById(tableId);
+            const element = document.getElementById('printable-report');
             const fileName = getReportFileName();
-            const opt = { 
-                margin: [0.4, 0.4, 0.6, 0.4], 
-                filename: fileName + '.pdf', 
-                image: { type: 'jpeg', quality: 0.98 }, 
-                html2canvas: { scale: 2, useCORS: true, letterRendering: true }, 
-                jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' },
-                pagebreak: { mode: ['css', 'legacy'] },
-                callback: function (pdf) {
-                    const totalPages = pdf.internal.getNumberOfPages();
-                    for (let i = 1; i <= totalPages; i++) {
-                        pdf.setPage(i);
-                        pdf.setFont("helvetica", "normal");
-                        pdf.setFontSize(10);
-                        pdf.setTextColor(100, 100, 100);
-                        pdf.text(`Page ${i} of ${totalPages}`, pdf.internal.pageSize.getWidth() - 1.0, pdf.internal.pageSize.getHeight() - 0.3, { align: 'right' });
-                    }
+            const opt = getPdfOptions(fileName);
+
+            html2pdf().set(opt).from(element).toPdf().get('pdf').then(function(pdf) {
+                const totalPages = pdf.internal.getNumberOfPages();
+                for (let i = 1; i <= totalPages; i++) {
+                    pdf.setPage(i);
+                    pdf.setFont("helvetica", "normal");
+                    pdf.setFontSize(9);
+                    pdf.setTextColor(100, 100, 100);
+                    pdf.text(`Page ${i} of ${totalPages}`, pdf.internal.pageSize.getWidth() - 0.5, pdf.internal.pageSize.getHeight() - 0.25, { align: 'right' });
                 }
-            };
-            html2pdf().set(opt).from(element).output('blob').then(function(pdfBlob) {
+            }).outputPdf('blob').then(function(pdfBlob) {
                 const file = new File([pdfBlob], fileName + ".pdf", { type: "application/pdf" });
                 if (navigator.canShare && navigator.canShare({ files: [file] })) {
                     navigator.share({
                         files: [file],
                         title: 'تقرير المحروقات',
                         text: 'مرفق التقرير'
-                    }).catch(function(e) {
+                    }).catch(function() {
                         const blobUrl = URL.createObjectURL(pdfBlob);
                         const a = document.createElement('a');
                         a.href = blobUrl;
