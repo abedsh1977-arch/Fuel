@@ -5,22 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>نظام إدارة المحروقات السحابي</title>
     
-    <!-- PWA Meta Tags -->
     <meta name="theme-color" content="#0a1f44">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="إدارة المحروقات">
     <link rel="manifest" id="pwa-manifest">
 
-    <!-- الخطوط والأيقونات -->
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-    <!-- مكتبات التصدير PDF و Excel -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
-    <!-- مكتبات Firebase -->
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
@@ -542,7 +538,7 @@
         <div class="header-top">
             <div class="status-badge">
                 <span class="status-dot" id="sync-dot"></span>
-                <span id="sync-text">متصل بالسحابة</span>
+                <span id="sync-text">النظام يعمل</span>
             </div>
             <div class="header-actions">
                 <button class="icon-btn" onclick="openSettingsModal()" title="إعدادات التطبيق">
@@ -570,7 +566,7 @@
                         <div class="input-pill">
                             <i class="fa-solid fa-hashtag"></i>
                             <label for="txNumber">رقم المعاملة</label>
-                            <input type="text" id="txNumber" readonly required style="font-weight: 800; color: var(--accent-green);">
+                            <input type="text" id="txNumber" readonly style="font-weight: 800; color: var(--accent-green);">
                         </div>
                     </div>
 
@@ -877,37 +873,26 @@
             return toUnifiedDigits(`${yyyy}-${mm}-${dd} ${hh}:${min}`);
         }
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyAb6ftQGEVh051Bykyc2jvGzNse9NQzJD8",
-            authDomain: "fuel-app-6d3d4.firebaseapp.com",
-            databaseURL: "https://fuel-app-6d3d4-default-rtdb.europe-west1.firebasedatabase.app",
-            projectId: "fuel-app-6d3d4",
-            storageBucket: "fuel-app-6d3d4.firebasestorage.app",
-            messagingSenderId: "1004234378863",
-            appId: "1:1004234378863:web:ada2a63463724d9258c79a",
-            measurementId: "G-R9ZTVJ7XH1"
-        };
-
         let db = null;
         let rtdb = null;
-        let isCloudConnected = false;
 
         try {
-            firebase.initializeApp(firebaseConfig);
-            try { db = firebase.firestore(); } catch (e) {}
-            try { rtdb = firebase.database(); } catch (e) {}
-            isCloudConnected = true;
-            updateSyncIndicator(true, "متصل بالسحابة (Firebase)");
-        } catch (err) {
-            updateSyncIndicator(false, "غير متصل بالسحابة");
-        }
-
-        function updateSyncIndicator(online, text) {
-            const dot = document.getElementById('sync-dot');
-            const txt = document.getElementById('sync-text');
-            dot.style.backgroundColor = online ? '#4ade80' : '#f59e0b';
-            txt.textContent = text;
-        }
+            const firebaseConfig = {
+                apiKey: "AIzaSyAb6ftQGEVh051Bykyc2jvGzNse9NQzJD8",
+                authDomain: "fuel-app-6d3d4.firebaseapp.com",
+                databaseURL: "https://fuel-app-6d3d4-default-rtdb.europe-west1.firebasedatabase.app",
+                projectId: "fuel-app-6d3d4",
+                storageBucket: "fuel-app-6d3d4.firebasestorage.app",
+                messagingSenderId: "1004234378863",
+                appId: "1:1004234378863:web:ada2a63463724d9258c79a",
+                measurementId: "G-R9ZTVJ7XH1"
+            };
+            if (!firebase.apps.length) {
+                firebase.initializeApp(firebaseConfig);
+            }
+            db = firebase.firestore();
+            rtdb = firebase.database();
+        } catch (err) {}
 
         let appUsers = JSON.parse(localStorage.getItem('fuel_app_users_list')) || ['مدير النظام', 'مشرف المخزن', 'مراقب الحركة'];
         let currentUser = localStorage.getItem('fuel_app_user') || 'مدير النظام';
@@ -923,7 +908,7 @@
         let filteredShipments = [];
         let loadedAuditLogs = [];
 
-        window.addEventListener('DOMContentLoaded', async () => {
+        window.addEventListener('DOMContentLoaded', () => {
             updateGreeting();
             populateDropdowns();
             document.getElementById('current-date-display').textContent = `تاريخ اليوم: ${formatUnifiedDateTime().split(' ')[0]}`;
@@ -941,45 +926,18 @@
                 document.getElementById('theme-icon').className = 'fa-solid fa-sun';
             }
 
-            await generateNextTxNumber();
-            restoreDraft();
+            generateNextTxNumber();
             updateLastEntryBanner();
-            setupAutoDraft();
             setupPWA();
         });
 
-        async function generateNextTxNumber() {
+        function generateNextTxNumber() {
             let maxNum = 0;
             const localRecords = JSON.parse(localStorage.getItem('fuel_records_backup') || '[]');
             localRecords.forEach(r => {
                 const n = parseInt(toUnifiedDigits(r.txNumber));
                 if (!isNaN(n) && n > maxNum) maxNum = n;
             });
-
-            if (db) {
-                try {
-                    const snap = await db.collection('shipments').get();
-                    snap.forEach(doc => {
-                        const d = doc.data();
-                        const n = parseInt(toUnifiedDigits(d.txNumber));
-                        if (!isNaN(n) && n > maxNum) maxNum = n;
-                    });
-                } catch(e){}
-            }
-
-            if (rtdb) {
-                try {
-                    const snap = await rtdb.ref('shipments').once('value');
-                    const val = snap.val();
-                    if (val) {
-                        Object.values(val).forEach(v => {
-                            const n = parseInt(toUnifiedDigits(v.txNumber));
-                            if (!isNaN(n) && n > maxNum) maxNum = n;
-                        });
-                    }
-                } catch(e){}
-            }
-
             document.getElementById('txNumber').value = maxNum + 1;
         }
 
@@ -1137,33 +1095,6 @@
             }
         }
 
-        function setupAutoDraft() {
-            const fields = ['fuelType', 'beneficiary', 'category', 'entryDate', 'trucksCount', 'quantity', 'notes'];
-            fields.forEach(id => {
-                const el = document.getElementById(id);
-                if (el) {
-                    el.addEventListener('input', () => {
-                        const draft = {};
-                        fields.forEach(f => draft[f] = document.getElementById(f).value);
-                        localStorage.setItem('fuel_form_draft', JSON.stringify(draft));
-                    });
-                }
-            });
-        }
-
-        function restoreDraft() {
-            const saved = localStorage.getItem('fuel_form_draft');
-            if (!saved) return;
-            try {
-                const draft = JSON.parse(saved);
-                Object.keys(draft).forEach(k => {
-                    if (document.getElementById(k) && draft[k]) {
-                        document.getElementById(k).value = draft[k];
-                    }
-                });
-            } catch (e) {}
-        }
-
         function updateLastEntryBanner() {
             const last = localStorage.getItem('fuel_last_saved');
             const banner = document.getElementById('last-entry-text');
@@ -1173,11 +1104,10 @@
             }
         }
 
-        async function handleFormSubmit(e) {
+        function handleFormSubmit(e) {
             e.preventDefault();
-            await generateNextTxNumber();
-
             const entry = {
+                id: 'LOC-' + Date.now(),
                 fuelType: document.getElementById('fuelType').value.trim(),
                 beneficiary: document.getElementById('beneficiary').value.trim(),
                 category: document.getElementById('category').value.trim(),
@@ -1191,65 +1121,22 @@
             };
 
             const localRecords = JSON.parse(localStorage.getItem('fuel_records_backup') || '[]');
-            const isDuplicate = localRecords.some(r =>
-                r.entryDate === entry.entryDate &&
-                r.beneficiary === entry.beneficiary &&
-                r.category === entry.category
-            );
+            localRecords.unshift(entry);
+            localStorage.setItem('fuel_records_backup', JSON.stringify(localRecords));
+            localStorage.setItem('fuel_last_saved', JSON.stringify(entry));
 
-            if (isDuplicate) {
-                openModal(
-                    "تنبيه تكرار محتمل",
-                    `توجد مسبقاً شحنة مسجلة للجهة (${entry.beneficiary}) والصنف (${entry.category}) في تاريخ (${entry.entryDate}). هل تريد المتابعة وحفظ الشحنة؟`,
-                    () => executeSaveEntry(entry)
-                );
-            } else {
-                executeSaveEntry(entry);
+            if (db) {
+                try { db.collection('shipments').add(entry); } catch(err){}
             }
-        }
-
-        async function executeSaveEntry(entry) {
-            closeModal();
-            const btn = document.getElementById('save-btn');
-            btn.disabled = true;
-
-            try {
-                entry.id = 'LOC-' + Date.now();
-
-                if (db) {
-                    try {
-                        const docRef = await db.collection('shipments').add(entry);
-                        entry.id = docRef.id;
-                    } catch (e) {}
-                }
-
-                if (rtdb) {
-                    try {
-                        const newRef = rtdb.ref('shipments').push();
-                        entry.id = newRef.key;
-                        await newRef.set(entry);
-                    } catch (e) {}
-                }
-
-                const localRecords = JSON.parse(localStorage.getItem('fuel_records_backup') || '[]');
-                localRecords.unshift(entry);
-                localStorage.setItem('fuel_records_backup', JSON.stringify(localRecords));
-                localStorage.setItem('fuel_last_saved', JSON.stringify(entry));
-                localStorage.removeItem('fuel_form_draft');
-
-                updateLastEntryBanner();
-
-                document.getElementById('quantity').value = '';
-                document.getElementById('notes').value = '';
-                await generateNextTxNumber();
-                document.getElementById('beneficiary').focus();
-                
-                alert("تم حفظ المعاملة بنجاح وتوليد رقم المعاملة التالي!");
-            } catch (err) {
-                alert("حدث خطأ أثناء الحفظ: " + err.message);
-            } finally {
-                btn.disabled = false;
+            if (rtdb) {
+                try { rtdb.ref('shipments').push(entry); } catch(err){}
             }
+
+            updateLastEntryBanner();
+            document.getElementById('quantity').value = '';
+            document.getElementById('notes').value = '';
+            generateNextTxNumber();
+            alert("تم حفظ المعاملة بنجاح!");
         }
 
         function setQuickPeriod(type, btn) {
@@ -1303,56 +1190,38 @@
 
             label.textContent = loadAll ? "الفترة: عرض كافة السجلات" : `الفترة: من ${fromVal} إلى ${toVal}`;
             document.getElementById('export-timestamp').textContent = `تاريخ ووقت التقرير: ${formatUnifiedDateTime()}`;
-            tbody.innerHTML = `<tr><td colspan="10" class="empty-state"><i class="fa-solid fa-spinner fa-spin"></i> جاري جلب البيانات من السحابة...</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="10" class="empty-state"><i class="fa-solid fa-spinner fa-spin"></i> جاري جلب السجلات...</td></tr>`;
 
-            try {
-                let rawList = [];
+            let rawList = [];
+            const localRecords = JSON.parse(localStorage.getItem('fuel_records_backup') || '[]');
+            localRecords.forEach(r => {
+                const norm = normalizeRecord(r.id, r);
+                if (norm) rawList.push(norm);
+            });
 
-                if (db) {
-                    try {
-                        const snap = await db.collection('shipments').get();
-                        snap.forEach(doc => {
-                            const norm = normalizeRecord(doc.id, doc.data());
-                            if (norm) rawList.push(norm);
-                        });
-                    } catch (e) {}
-                }
-
-                if (rtdb) {
-                    try {
-                        const snap = await rtdb.ref('shipments').once('value');
-                        const val = snap.val();
-                        if (val) {
-                            Object.entries(val).forEach(([k, v]) => {
-                                const norm = normalizeRecord(k, v);
-                                if (norm) rawList.push(norm);
-                            });
-                        }
-                    } catch (e) {}
-                }
-
-                const localRecords = JSON.parse(localStorage.getItem('fuel_records_backup') || '[]');
-                localRecords.forEach(r => {
-                    const norm = normalizeRecord(r.id, r);
-                    if (norm) rawList.push(norm);
-                });
-
-                const uniqueMap = new Map();
-                rawList.forEach(item => {
-                    const key = `${item.txNumber}_${item.entryDate}_${item.beneficiary}_${item.quantity}`;
-                    if (!uniqueMap.has(key)) uniqueMap.set(key, item);
-                });
-                let allRecords = Array.from(uniqueMap.values());
-
-                if (!loadAll) {
-                    allRecords = allRecords.filter(r => !r.entryDate || (r.entryDate >= fromVal && r.entryDate <= toVal));
-                }
-
-                loadedShipments = allRecords.sort((a, b) => (b.entryDate || '').localeCompare(a.entryDate || ''));
-                applyLocalSearch();
-            } catch (err) {
-                alert("خطأ أثناء جلب التقارير: " + err.message);
+            if (db) {
+                try {
+                    const snap = await db.collection('shipments').get();
+                    snap.forEach(doc => {
+                        const norm = normalizeRecord(doc.id, doc.data());
+                        if (norm) rawList.push(norm);
+                    });
+                } catch(e){}
             }
+
+            const uniqueMap = new Map();
+            rawList.forEach(item => {
+                const key = `${item.txNumber}_${item.entryDate}_${item.beneficiary}_${item.quantity}`;
+                if (!uniqueMap.has(key)) uniqueMap.set(key, item);
+            });
+            let allRecords = Array.from(uniqueMap.values());
+
+            if (!loadAll) {
+                allRecords = allRecords.filter(r => !r.entryDate || (r.entryDate >= fromVal && r.entryDate <= toVal));
+            }
+
+            loadedShipments = allRecords.sort((a, b) => (b.entryDate || '').localeCompare(a.entryDate || ''));
+            applyLocalSearch();
         }
 
         function applyLocalSearch() {
@@ -1430,7 +1299,7 @@
             );
         }
 
-        async function executeDeleteShipment(target) {
+        function executeDeleteShipment(target) {
             closeModal();
             const auditEntry = {
                 actionType: 'حذف شحنة',
@@ -1441,54 +1310,24 @@
                 actionDate: formatUnifiedDateTime()
             };
 
-            try {
-                if (db) {
-                    try { await db.collection('shipments').doc(target.id).delete(); } catch(e){}
-                    try { await db.collection('audit_logs').add(auditEntry); } catch(e){}
-                }
-                if (rtdb) {
-                    try { await rtdb.ref(`shipments/${target.id}`).remove(); } catch(e){}
-                    try { await rtdb.ref('audit_logs').push(auditEntry); } catch(e){}
-                }
+            let localRecords = JSON.parse(localStorage.getItem('fuel_records_backup') || '[]');
+            localRecords = localRecords.filter(r => r.id !== target.id);
+            localStorage.setItem('fuel_records_backup', JSON.stringify(localRecords));
 
-                let localRecords = JSON.parse(localStorage.getItem('fuel_records_backup') || '[]');
-                localRecords = localRecords.filter(r => r.id !== target.id);
-                localStorage.setItem('fuel_records_backup', JSON.stringify(localRecords));
+            const localAudit = JSON.parse(localStorage.getItem('fuel_audit_backup') || '[]');
+            localAudit.unshift(auditEntry);
+            localStorage.setItem('fuel_audit_backup', JSON.stringify(localAudit));
 
-                const localAudit = JSON.parse(localStorage.getItem('fuel_audit_backup') || '[]');
-                localAudit.unshift(auditEntry);
-                localStorage.setItem('fuel_audit_backup', JSON.stringify(localAudit));
-
-                loadedShipments = loadedShipments.filter(r => r.id !== target.id);
-                applyLocalSearch();
-                await generateNextTxNumber();
-            } catch (e) {
-                alert("تعذر الحذف: " + e.message);
-            }
+            loadedShipments = loadedShipments.filter(r => r.id !== target.id);
+            applyLocalSearch();
+            generateNextTxNumber();
+            alert("تم الحذف بنجاح");
         }
 
-        async function loadAuditLogs() {
-            try {
-                let logs = [];
-                if (db) {
-                    try {
-                        const snap = await db.collection('audit_logs').get();
-                        snap.forEach(d => logs.push(d.data()));
-                    } catch (e) {}
-                }
-                if (rtdb && logs.length === 0) {
-                    try {
-                        const snap = await rtdb.ref('audit_logs').once('value');
-                        const val = snap.val();
-                        if (val) Object.values(val).forEach(v => logs.push(v));
-                    } catch (e) {}
-                }
-                if (logs.length === 0) {
-                    logs = JSON.parse(localStorage.getItem('fuel_audit_backup') || '[]');
-                }
-                loadedAuditLogs = logs;
-                renderAuditTable();
-            } catch (e) {}
+        function loadAuditLogs() {
+            const logs = JSON.parse(localStorage.getItem('fuel_audit_backup') || '[]');
+            loadedAuditLogs = logs;
+            renderAuditTable();
         }
 
         function renderAuditTable() {
