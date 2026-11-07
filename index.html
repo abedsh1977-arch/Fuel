@@ -601,6 +601,9 @@
             if(tabId === 'settings-tab') {
                 renderSettingsList('fuelTypes', 'fuelTypesList');
                 renderSettingsList('beneficiaries', 'beneficiariesList');
+                if (currentUser && currentUser.role === 'admin') {
+                    renderUsersTable();
+                }
             }
         }
 
@@ -947,7 +950,7 @@
             return "تقرير_كميات_" + periodStr;
         }
 
-        // دالة تصدير Excel مطابقة تماماً لتنسيق الـ PDF
+        // دالة تصدير Excel مصححة بالكامل لتطابق تنسيق وترتيب أعمدة الـ PDF تماماً
         function exportExcel(tableId) {
             updateExportFooter();
             const periodText = document.getElementById('reportPeriodDisplay').innerText;
@@ -1009,7 +1012,7 @@
             const wb = XLSX.utils.book_new();
             const ws = XLSX.utils.aoa_to_sheet(wsData);
             
-            // ضبط الاتجاه ليكون من اليمين لليسار (RTL)
+            // ضبط اتجاه الورقة من اليمين لليسار ليتطابق مع الـ PDF تماماً
             ws['!rtl'] = true;
 
             XLSX.utils.book_append_sheet(wb, ws, "التقرير");
